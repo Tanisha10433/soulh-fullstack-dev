@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: soulh-backend
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: soulh_db
+      # To use MongoDB Atlas in production, replace host/port with:
+      # uri: mongodb+srv://<user>:<pass>@cluster.mongodb.net/soulh_db
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: soulh-super-secret-jwt-key-must-be-at-least-32-chars-long-for-hmac
+    expiration: 86400000 # 24 hours in milliseconds
+
+  razorpay:
+    # Use TEST mode keys — sign up free at razorpay.com → Settings → API Keys
+    key-id: rzp_test_REPLACE_WITH_YOUR_KEY
+    key-secret: REPLACE_WITH_YOUR_SECRET
+    consultation-fee: 499.0   # INR — change as needed
