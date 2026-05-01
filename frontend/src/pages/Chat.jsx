@@ -110,6 +110,10 @@ export default function Chat() {
     };
   }, [userId, myId, stompClient, isConnected]);
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, peerTyping]);
+
   // ─── ACTIONS ───────────────────────────────────────────────────────────────
   const scrollToBottom = () => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
 

@@ -221,8 +221,8 @@ export default function Login() {
                 <button type="button" onClick={() => setForm({ email: 'priya@soulh.demo', password: 'Demo@1234' })} className="py-2 px-3 text-xs font-semibold rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition whitespace-nowrap overflow-hidden text-ellipsis">
                   🙍‍♀️ Patient
                 </button>
-                <button type="button" onClick={() => setForm({ email: 'dr.fatima@soulh.demo', password: 'Demo@1234' })} className="col-span-2 py-2 px-3 text-xs font-semibold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition whitespace-nowrap overflow-hidden text-ellipsis">
-                  👨‍⚕️ Doctor (Unverified/Pending)
+                <button type="button" onClick={() => setForm({ email: 'doctor@soulh.com', password: '123456' })} className="col-span-2 py-2 px-3 text-xs font-semibold rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition whitespace-nowrap overflow-hidden text-ellipsis shadow-md">
+                  👨‍⚕️ Dr. Fatima Ali (Endometriosis Specialist)
                 </button>
               </div>
             </div>

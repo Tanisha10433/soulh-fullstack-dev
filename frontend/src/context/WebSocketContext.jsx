@@ -65,8 +65,19 @@ export const WebSocketProvider = ({ children }) => {
     };
   }, [user]);   // re-run only when user changes (login/logout)
 
+  const markAllNotificationsAsRead = async () => {
+    try {
+      const api = (await import('../api')).default;
+      await api.patch('/api/notifications/read-all');
+      setUnreadCount(0);
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (e) {
+      console.error('Failed to clear notifications', e);
+    }
+  };
+
   return (
-    <WebSocketContext.Provider value={{ stompClient, isConnected, notifications, unreadCount, setUnreadCount }}>
+    <WebSocketContext.Provider value={{ stompClient, isConnected, notifications, unreadCount, setUnreadCount, markAllNotificationsAsRead }}>
       {children}
     </WebSocketContext.Provider>
   );

@@ -21,8 +21,10 @@ public class CommunityFeedController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<?> getAll() {
-        return ResponseEntity.ok(communityService.getAllPosts());
+    public ResponseEntity<?> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(communityService.getPaginatedPosts(page, size));
     }
 
     @PostMapping

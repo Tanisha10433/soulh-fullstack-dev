@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { Link } from 'react-router-dom';
+import WhyChooseDoctors from '../components/WhyChooseDoctors';
 import api from '../api';
 
 export default function DoctorsList() {
   const { user } = useAuth();
+  const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +20,7 @@ export default function DoctorsList() {
       .then(r => setDoctors(r.data))
       .catch(() => setDoctors([]))
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [user, navigate]);
 
   const filtered = doctors.filter(d =>
     d.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -25,62 +29,63 @@ export default function DoctorsList() {
   );
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin text-4xl">⏳</div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc]">
+      <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
+      <p className="mt-4 text-slate-500 font-medium">Finding support experts...</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <div className="orb w-[500px] h-[500px] top-0 right-[-100px]" style={{ background: 'rgba(13,107,94,0.1)' }} />
-      <div className="orb w-[400px] h-[400px] bottom-0 left-0" style={{ background: 'rgba(232,119,106,0.07)' }} />
+    <div className="min-h-screen relative overflow-hidden bg-[#f8fafc] py-16">
+      <div className="fixed top-[-10%] right-[-10%] w-[600px] h-[600px] bg-teal-50/50 blur-[120px] rounded-full -z-10" />
+      <div className="fixed bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-50/40 blur-[100px] rounded-full -z-10" />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-10">
+      <div className="relative z-10 max-w-5xl mx-auto px-6">
 
         {/* Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4"
-            style={{ background: 'rgba(13,107,94,0.08)', color: '#0d6b5e' }}>
-            🩺 Verified Doctors
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-teal-100 shadow-sm"
+            style={{ background: 'rgba(255,255,255,0.8)', color: '#0f766e' }}>
+            🌿 Verified Professionals
           </div>
-          <h1 className="text-3xl font-black mb-2" style={{ color: '#1a3530' }}>
-            Book a Consultation
+          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight text-slate-800">
+            Find Your Support Guide
           </h1>
-          <p className="text-base" style={{ color: '#8aada5' }}>
-            Connect with verified medical professionals from the comfort of your home
+          <p className="text-lg text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed">
+            Connect with verified medical professionals specialized in mental health and chronic care who understand your journey.
           </p>
         </div>
 
         {/* Search */}
-        <div className="relative max-w-lg mx-auto mb-8">
+        <div className="relative max-w-2xl mx-auto mb-16">
           <input
             type="text"
-            placeholder="Search by name, specialization, or hospital..."
+            placeholder="Search by name, condition, or specialization..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-2 transition shadow-sm"
-            style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(13,107,94,0.15)', color: '#1a3530' }}
+            className="w-full px-7 py-5 pl-14 rounded-full text-base bg-white border border-slate-200 focus:outline-none focus:ring-4 focus:ring-teal-500/10 transition shadow-lg shadow-slate-200/50"
           />
-          <svg className="absolute left-4 top-3.5 w-4 h-4" fill="none" stroke="#8aada5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl opacity-40">🔍</span>
         </div>
 
-        {/* Doctors Grid */}
+        {/* Why Choose Our Doctors Section */}
+        <WhyChooseDoctors />
+
+        {/* Doctors List */}
         {filtered.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-5xl mb-4">🩺</p>
-            <p className="font-bold text-lg" style={{ color: '#1a3530' }}>
-              {doctors.length === 0 ? 'No verified doctors yet.' : 'No doctors match your search.'}
+          <div className="text-center py-20 glass rounded-[3rem] border-white/50">
+            <p className="text-6xl mb-6">🌿</p>
+            <p className="font-black text-2xl text-slate-800 tracking-tight">
+              {doctors.length === 0 ? 'No verified guides yet.' : 'No guides match your search.'}
             </p>
-            <p className="text-sm mt-2" style={{ color: '#8aada5' }}>
-              Doctors are verified by our admin team before listing.
+            <p className="text-base mt-3 text-slate-500 font-medium max-w-md mx-auto">
+              Our team carefully verifies every professional before they join our support network.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filtered.map(doctor => (
-              <DoctorCard key={doctor.id} doctor={doctor} onBook={() => navigate(`/doctors/${doctor.id}/book`)} />
+              <DoctorCard key={doctor.id} doctor={doctor} />
             ))}
           </div>
         )}
@@ -89,64 +94,58 @@ export default function DoctorsList() {
   );
 }
 
-function DoctorCard({ doctor, onBook }) {
+function DoctorCard({ doctor }) {
   const initials = (doctor.name || 'D').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const displayName = doctor.name?.toLowerCase().startsWith('dr.') ? doctor.name : `Dr. ${doctor.name}`;
+  
   return (
-    <div className="glass overflow-hidden flex flex-col hover:-translate-y-1 transition-all duration-200"
-      style={{ borderRadius: '20px' }}>
-      {/* Card top gradient */}
-      <div className="h-16 relative flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #0d6b5e, #1aab98)' }}>
-        <div className="absolute inset-0 opacity-10"
-          style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-      </div>
+    <Link to={`/doctors/${doctor.id}`} 
+      className="glass p-6 md:p-8 rounded-[2.5rem] border-white/60 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative overflow-hidden bg-white/40">
+      
+      <div className="absolute top-0 right-0 w-32 h-32 bg-teal-600/5 blur-2xl -mr-10 -mt-10 rounded-full transition-transform duration-500 group-hover:scale-150" />
 
-      <div className="px-5 pb-5 flex flex-col flex-1 -mt-7">
-        <div className="flex items-end gap-3 mb-3">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black text-white shadow-lg border-3 border-white flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg,#0d6b5e,#0f8b7a)', border: '3px solid white' }}>
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-black text-base truncate" style={{ color: '#1a3530' }}>Dr. {doctor.name}</h3>
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background: '#d1fae5', color: '#065f46' }}>
-              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Verified
-            </span>
-          </div>
+      <div className="flex flex-col sm:flex-row gap-6 relative z-10">
+        <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black text-white shadow-xl border-4 border-white shrink-0 bg-gradient-to-br from-teal-500 to-teal-700">
+          {initials}
         </div>
-
-        <div className="space-y-1.5 flex-1">
-          {doctor.specialization && (
-            <p className="text-sm font-semibold" style={{ color: '#0d6b5e' }}>🔬 {doctor.specialization}</p>
-          )}
-          {doctor.qualification && (
-            <p className="text-xs font-medium" style={{ color: '#64748b' }}>🎓 {doctor.qualification}</p>
-          )}
-          {doctor.hospital && (
-            <p className="text-xs font-medium truncate" style={{ color: '#64748b' }}>🏥 {doctor.hospital}</p>
-          )}
-          {doctor.experience > 0 && (
-            <p className="text-xs font-medium" style={{ color: '#64748b' }}>⭐ {doctor.experience} Years Experience</p>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between mt-4 pt-3"
-          style={{ borderTop: '1px solid rgba(13,107,94,0.1)' }}>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#8aada5' }}>Consultation Fee</p>
-            <p className="text-lg font-black" style={{ color: '#0d6b5e' }}>₹{doctor.fee}</p>
+        
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="font-black text-xl text-slate-800 tracking-tight group-hover:text-teal-700 transition-colors">
+              {displayName}
+            </h3>
           </div>
-          <button onClick={onBook}
-            className="px-4 py-2 rounded-xl text-sm font-bold transition shadow-sm hover:shadow-md active:scale-95"
-            style={{ background: '#0d6b5e', color: 'white' }}>
-            Book Now →
-          </button>
+          <span className="inline-block px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-[9px] font-black uppercase tracking-widest border border-teal-100 shadow-sm mb-3">
+            SoulH Verified Guide
+          </span>
+          
+          <div className="space-y-2">
+            <p className="text-sm font-bold text-teal-600 flex items-center gap-2">
+              <span className="text-lg">🤝</span> {doctor.illnessCondition || doctor.specialization || 'Support Expert'}
+            </p>
+            {doctor.experience > 0 && (
+              <p className="text-xs font-medium text-slate-500 flex items-center gap-2">
+                <span className="text-lg">✨</span> {doctor.experience} Years of Guidance
+              </p>
+            )}
+            {doctor.hospital && (
+              <p className="text-xs font-medium text-slate-500 flex items-center gap-2 truncate">
+                <span className="text-lg">🏥</span> {doctor.hospital}
+              </p>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      <div className="mt-6 pt-5 border-t border-slate-100/80 flex items-center justify-between relative z-10">
+        <div>
+          {/* <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Access</p>
+          <p className="text-lg font-black text-teal-700">₹{doctor.fee || 499}</p> */}
+        </div>
+        <div className="px-6 py-2.5 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-900/10 group-hover:bg-teal-600 group-hover:shadow-teal-600/20 transition-all">
+          View Profile ➔
+        </div>
+      </div>
+    </Link>
   );
 }

@@ -29,14 +29,25 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
     private final RefreshTokenService refreshTokenService;
+    private final com.soulh.service.RateLimitService rateLimitService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(
+            @RequestBody RegisterRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        if (!rateLimitService.isAllowed(httpRequest.getRemoteAddr())) {
+            return ResponseEntity.status(429).body(Map.of("error", "Too many requests. Please wait a moment."));
+        }
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(
+            @RequestBody LoginRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        if (!rateLimitService.isAllowed(httpRequest.getRemoteAddr())) {
+            return ResponseEntity.status(429).body(Map.of("error", "Too many requests. Please wait a moment."));
+        }
         return ResponseEntity.ok(authService.login(request));
     }
 

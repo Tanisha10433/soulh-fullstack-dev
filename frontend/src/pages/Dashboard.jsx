@@ -267,7 +267,7 @@ export default function Dashboard() {
             </span>
             {profile.role === 'DOCTOR' && (
               <Link to="/doctor" className="badge badge-teal cursor-pointer hover:opacity-80 transition">
-                👨‍⚕️ Doctor Panel
+                🌿 Expert Portal
               </Link>
             )}
             {pendingRequests.length > 0 && (
@@ -276,6 +276,22 @@ export default function Dashboard() {
               </button>
             )}
           </div>
+        </div>
+
+        {/* Wellness Stats Widget */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Connections', value: connections.length, icon: '👥', color: '#0d6b5e' },
+            { label: 'Posts Shared', value: posts.filter(p => p.author?.id === profile.id).length, icon: '✍️', color: '#0f8b7a' },
+            { label: 'Consultations', value: profile.consultationsBooked || 0, icon: '📅', color: '#14b8a6' },
+            { label: 'Days Active', value: Math.floor((Date.now() - new Date(profile.createdAt || Date.now())) / (1000 * 60 * 60 * 24)) + 1, icon: '✨', color: '#e8776a' },
+          ].map(s => (
+            <div key={s.label} className="glass p-4 flex flex-col items-center justify-center text-center group hover:-translate-y-1 transition duration-300">
+              <span className="text-2xl mb-1 group-hover:scale-125 transition">{s.icon}</span>
+              <p className="text-lg font-black" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#8aada5' }}>{s.label}</p>
+            </div>
+          ))}
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -503,12 +519,17 @@ export default function Dashboard() {
                                 </div>
                               ))}
                             </div>
-                            <form onSubmit={e => addComment(e, post.id)} className="flex gap-2 pt-1">
-                              <input value={commentInput[post.id] || ''}
-                                onChange={e => setCommentInput(c => ({ ...c, [post.id]: e.target.value }))}
-                                placeholder="Write a comment..."
-                                className="input-field flex-1 text-xs py-2" style={{ borderRadius: '10px' }} />
-                              <button type="submit" className="btn-primary px-3 py-2 text-xs" style={{ borderRadius: '10px' }}>Send</button>
+                            <form onSubmit={e => addComment(e, post.id)} className="flex flex-col gap-2 pt-1">
+                              <div className="flex gap-2">
+                                <input value={commentInput[post.id] || ''}
+                                  onChange={e => setCommentInput(c => ({ ...c, [post.id]: e.target.value.slice(0, 200) }))}
+                                  placeholder="Write a comment..."
+                                  className="input-field flex-1 text-xs py-2" style={{ borderRadius: '10px' }} />
+                                <button type="submit" className="btn-primary px-3 py-2 text-xs" style={{ borderRadius: '10px' }}>Send</button>
+                              </div>
+                              <div className="text-[9px] text-right pr-1" style={{ color: (commentInput[post.id]?.length || 0) >= 200 ? '#e8776a' : '#8aada5' }}>
+                                {commentInput[post.id]?.length || 0}/200
+                              </div>
                             </form>
                           </div>
                         )}
@@ -703,7 +724,7 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <p className="font-bold text-sm flex items-center gap-1" style={{ color: '#1a3530' }}>
-                            Dr. {doc.name}
+                            {doc.name?.toLowerCase().startsWith('dr.') ? doc.name : `Dr. ${doc.name}`}
                             <span className="badge badge-teal py-0 px-1 text-[9px] relative group cursor-default">
                               <span className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded w-36 text-center shadow-lg pointer-events-none z-50">
                                 Officially verified medical credentials by SoulH Admins
@@ -770,7 +791,7 @@ export default function Dashboard() {
             { emoji: '👨‍⚕️', label: 'Consult Expert', onClick: () => setActiveTab('doctors') },
             { emoji: '👥', label: 'My Connections', onClick: () => setActiveTab('connections') },
             { emoji: '💬', label: 'Messages',     to: null,  soon: connections.length === 0 ? 'Connect first' : null },
-            { emoji: '🗄️', label: 'H2 Database',  to: 'http://localhost:8080/h2-console', external: true },
+            { emoji: '📓', label: 'My Journal',    to: null,  soon: 'Coming Soon' },
           ].map(({ emoji, label, to, onClick, soon, external }) => (
             external ? (
               <a key={label} href={to} target="_blank" rel="noopener noreferrer" className="glass-hover p-5 flex flex-col items-center justify-center gap-2 text-center no-underline">

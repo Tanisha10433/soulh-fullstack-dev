@@ -16,6 +16,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/doctor")
@@ -27,6 +29,9 @@ public class DoctorController {
     private final UserService userService;
     private final FileStorageService fileStorageService;
     private final DoctorVerificationRepository doctorVerificationRepository;
+    private final com.soulh.repository.ConsultationRequestRepository consultationRequestRepository;
+    private final com.soulh.repository.ConsultationRepository consultationRepository;
+    private final com.soulh.repository.DoctorContentRepository doctorContentRepository;
 
     /**
      * Legacy simple registration (registration number only).
@@ -99,17 +104,54 @@ public class DoctorController {
     private final com.soulh.repository.PatientVerificationRepository patientVerificationRepository;
     private final com.soulh.repository.UserRepository userRepository;
 
-    @GetMapping("/dashboard-stats")
-    public ResponseEntity<Map<String, Long>> getDashboardStats() {
-        long totalPatients = userRepository.countByRole(com.soulh.model.Role.USER);
-        long pendingRequests = patientVerificationRepository.countByStatus(com.soulh.model.VerificationStatus.PENDING);
-        long approvedUsers = userRepository.countByRoleAndIsVerifiedTrue(com.soulh.model.Role.USER);
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails ud) {
+        try {
+            var doctor = userService.getByEmail(ud.getUsername());
+            if (doctor == null) return ResponseEntity.status(401).body(Map.of("message", "User not found"));
+            
+            String docId = doctor.getId();
+            
+            long totalPatients = 0;
+            try {
+                totalPatients = consultationRepository.findByDoctorId(docId).stream()
+                    .map(com.soulh.model.Consultation::getPatientId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .count();
+            } catch (Exception e) { System.err.println("Error counting patients: " + e.getMessage()); }
 
-        return ResponseEntity.ok(Map.of(
-            "totalPatients", totalPatients,
-            "pendingRequests", pendingRequests,
-            "approvedUsers", approvedUsers
-        ));
+            long pendingRequests = 0;
+            try {
+                pendingRequests = consultationRequestRepository.findByDoctorIdAndStatus(docId, "PENDING").size();
+            } catch (Exception e) { System.err.println("Error counting requests: " + e.getMessage()); }
+
+            long activeConsultations = 0;
+            try {
+                activeConsultations = consultationRepository.findByDoctorIdAndStatus(docId, "CONFIRMED").size();
+            } catch (Exception e) { System.err.println("Error counting active: " + e.getMessage()); }
+
+            long completedSessions = 0;
+            try {
+                completedSessions = consultationRepository.findByDoctorIdAndStatus(docId, "COMPLETED").size();
+            } catch (Exception e) { System.err.println("Error counting completed: " + e.getMessage()); }
+
+            return ResponseEntity.ok(Map.of(
+                "totalPatients", totalPatients,
+                "pendingRequests", pendingRequests,
+                "activeConsultations", activeConsultations,
+                "completedSessions", completedSessions
+            ));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.ok(Map.of(
+                "totalPatients", 0L,
+                "pendingRequests", 0L,
+                "activeConsultations", 0L,
+                "completedSessions", 0L,
+                "warning", "Some data could not be synchronized."
+            ));
+        }
     }
 
     @GetMapping("/patient-verifications")
@@ -128,25 +170,172 @@ public class DoctorController {
     @GetMapping("/profile")
     public ResponseEntity<?> getDoctorProfile(@AuthenticationPrincipal UserDetails ud) {
         var doctor = userService.getByEmail(ud.getUsername());
-        return ResponseEntity.ok(Map.of(
-            "id",             doctor.getId(),
-            "name",           doctor.getName() != null ? doctor.getName() : "",
-            "email",          doctor.getEmail() != null ? doctor.getEmail() : "",
-            "specialization", doctor.getIllnessCondition() != null ? doctor.getIllnessCondition() : "",
-            "experience",     doctor.getExperience() != null ? doctor.getExperience() : 0,
-            "qualification",  doctor.getQualification() != null ? doctor.getQualification() : "",
-            "hospital",       doctor.getHospital() != null ? doctor.getHospital() : "",
-            "isVerified",     doctor.isVerified()
-        ));
+        Map<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put("id",             doctor.getId());
+        m.put("name",           doctor.getName() != null ? doctor.getName() : "");
+        m.put("email",          doctor.getEmail() != null ? doctor.getEmail() : "");
+        m.put("specialization", doctor.getIllnessCondition() != null ? doctor.getIllnessCondition() : "");
+        m.put("experience",     doctor.getExperience() != null ? doctor.getExperience() : 0);
+        m.put("qualification",  doctor.getQualification() != null ? doctor.getQualification() : "");
+        m.put("hospital",       doctor.getHospital() != null ? doctor.getHospital() : "");
+        m.put("bio",            doctor.getBio() != null ? doctor.getBio() : "");
+        m.put("expertiseAreas", doctor.getExpertiseAreas());
+        m.put("awards",         doctor.getAwards());
+        m.put("publications",   doctor.getPublications());
+        m.put("isVerified",     doctor.isVerified());
+        return ResponseEntity.ok(m);
     }
 
-    /** PUT /api/doctor/profile/update — lets doctor edit their own profile */
-    @PutMapping("/profile/update")
+    /** PUT /api/doctor/profile — lets doctor edit their own profile */
+    @PutMapping("/profile")
+    @PostMapping("/save")
     public ResponseEntity<?> updateDoctorProfile(
             @AuthenticationPrincipal UserDetails ud,
-            @RequestBody Map<String, String> body) {
-        userService.updateDoctorProfile(ud.getUsername(), body);
+            @RequestBody Map<String, Object> body) {
+        var doctor = userService.getByEmail(ud.getUsername());
+        if (body.containsKey("name")) doctor.setName((String) body.get("name"));
+        if (body.containsKey("specialization")) doctor.setIllnessCondition((String) body.get("specialization"));
+        if (body.containsKey("experience")) {
+            try { doctor.setExperience(Integer.parseInt(body.get("experience").toString())); } catch (Exception ignored) {}
+        }
+        if (body.containsKey("qualification")) doctor.setQualification((String) body.get("qualification"));
+        if (body.containsKey("hospital")) doctor.setHospital((String) body.get("hospital"));
+        if (body.containsKey("bio")) doctor.setBio((String) body.get("bio"));
+        if (body.containsKey("expertiseAreas")) doctor.setExpertiseAreas((List<String>) body.get("expertiseAreas"));
+        if (body.containsKey("awards")) doctor.setAwards((List<String>) body.get("awards"));
+        if (body.containsKey("publications")) doctor.setPublications((List<String>) body.get("publications"));
+        
+        userRepository.save(doctor);
         return ResponseEntity.ok(Map.of("message", "Profile updated successfully"));
+    }
+
+    // ─── CONSULTATION REQUESTS ──────────────────────────────────────────────────
+
+    @GetMapping("/requests")
+    public ResponseEntity<?> getConsultationRequests(@AuthenticationPrincipal UserDetails ud) {
+        var doctor = userService.getByEmail(ud.getUsername());
+        var requests = consultationRequestRepository.findByDoctorIdAndStatus(doctor.getId(), "PENDING");
+        
+        // Enrich with patient name
+        List<Map<String, Object>> result = requests.stream().map(r -> {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", r.getId());
+            m.put("patientId", r.getPatientId());
+            m.put("condition", r.getCondition());
+            m.put("scheduledTime", r.getScheduledTime());
+            try {
+                var patient = userService.getById(r.getPatientId());
+                m.put("patientName", patient.getName());
+            } catch (Exception e) {
+                m.put("patientName", "Unknown Patient");
+            }
+            return m;
+        }).collect(java.util.stream.Collectors.toList());
+        
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/requests/{id}/accept")
+    public ResponseEntity<?> acceptRequest(@PathVariable String id, @AuthenticationPrincipal UserDetails ud) {
+        var req = consultationRequestRepository.findById(id).orElseThrow();
+        req.setStatus("ACCEPTED");
+        consultationRequestRepository.save(req);
+
+        // Create a confirmed consultation
+        String consultationId = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        String meetingUrl = "https://meet.jit.si/soulh-" + consultationId;
+
+        var consultation = com.soulh.model.Consultation.builder()
+                .patientId(req.getPatientId())
+                .doctorId(req.getDoctorId())
+                .status("CONFIRMED")
+                .meetingUrl(meetingUrl)
+                .scheduledAt(req.getScheduledTime())
+                .createdAt(java.time.LocalDateTime.now())
+                .build();
+        consultationRepository.save(consultation);
+
+        return ResponseEntity.ok(Map.of("message", "Request accepted", "consultationId", consultation.getId()));
+    }
+
+    @PostMapping("/requests/{id}/reject")
+    public ResponseEntity<?> rejectRequest(@PathVariable String id) {
+        var req = consultationRequestRepository.findById(id).orElseThrow();
+        req.setStatus("REJECTED");
+        consultationRequestRepository.save(req);
+        return ResponseEntity.ok(Map.of("message", "Request rejected"));
+    }
+
+    @GetMapping("/consultations")
+    public ResponseEntity<?> getConsultations(@AuthenticationPrincipal UserDetails ud) {
+        var doctor = userService.getByEmail(ud.getUsername());
+        var consultations = consultationRepository.findByDoctorId(doctor.getId());
+        
+        List<Map<String, Object>> result = consultations.stream().map(c -> {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", c.getId());
+            m.put("patientId", c.getPatientId());
+            m.put("condition", c.getCondition());
+            m.put("status", c.getStatus());
+            m.put("scheduledTime", c.getScheduledAt());
+            try {
+                var patient = userService.getById(c.getPatientId());
+                m.put("patientName", patient.getName());
+            } catch (Exception e) {
+                m.put("patientName", "Unknown Patient");
+            }
+            return m;
+        }).collect(Collectors.toList());
+        
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/consultations/{id}/complete")
+    public ResponseEntity<?> completeConsultation(@PathVariable String id) {
+        var consultation = consultationRepository.findById(id).orElseThrow();
+        consultation.setStatus("COMPLETED");
+        consultationRepository.save(consultation);
+        return ResponseEntity.ok(Map.of("message", "Consultation marked as completed"));
+    }
+
+    @PostMapping("/content")
+    public ResponseEntity<?> createContent(
+            @AuthenticationPrincipal UserDetails ud,
+            @RequestBody Map<String, String> body) {
+        var doctor = userService.getByEmail(ud.getUsername());
+        var content = com.soulh.model.DoctorContent.builder()
+                .doctorId(doctor.getId())
+                .title(body.get("title"))
+                .content(body.get("content"))
+                .type(body.get("type")) // ARTICLE or TIP
+                .createdAt(java.time.LocalDateTime.now())
+                .build();
+        doctorContentRepository.save(content);
+        return ResponseEntity.ok(Map.of("message", "Content added successfully"));
+    }
+
+    @GetMapping("/patients")
+    public ResponseEntity<?> getConnectedPatients(@AuthenticationPrincipal UserDetails ud) {
+        var doctor = userService.getByEmail(ud.getUsername());
+        var patientIds = consultationRepository.findByDoctorId(doctor.getId()).stream()
+                .map(com.soulh.model.Consultation::getPatientId)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+
+        var patients = patientIds.stream().map(id -> {
+            try {
+                var p = userService.getById(id);
+                return Map.of(
+                    "id", p.getId(),
+                    "name", p.getName(),
+                    "condition", p.getIllnessCondition() != null ? p.getIllnessCondition() : ""
+                );
+            } catch (Exception e) {
+                return null;
+            }
+        }).filter(Objects::nonNull).collect(java.util.stream.Collectors.toList());
+
+        return ResponseEntity.ok(patients);
     }
 
     @PatchMapping("/verify-patient/{id}")

@@ -154,6 +154,8 @@ export default function Community() {
   
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [filter, setFilter] = useState('ALL');
   
   const [showCreate, setShowCreate] = useState(false);
@@ -162,15 +164,50 @@ export default function Community() {
 
   const TAGS = ['ANXIETY', 'PAIN', 'DIABETES', 'LUPUS', 'GENERAL', 'RESOURCES'];
 
-  const loadPosts = useCallback(async () => {
+  const loadPosts = useCallback(async (isInitial = true) => {
     try {
-      const res = await api.get('/api/posts');
-      setPosts(res.data);
-    } catch { }
-    finally { setLoading(false); }
-  }, []);
+      const currentPage = isInitial ? 0 : page;
+      const res = await api.get(`/api/posts?page=${currentPage}&size=10`);
+      const newPosts = res.data;
+      
+      if (isInitial) {
+        setPosts(newPosts);
+        setPage(1);
+        setHasMore(newPosts.length === 10);
+      } else {
+        setPosts(prev => [...prev, ...newPosts]);
+        setPage(prev => prev + 1);
+        setHasMore(newPosts.length === 10);
+      }
+    } catch { 
+      addToast('Failed to load posts.', 'error');
+    } finally { 
+      setLoading(false); 
+    }
+  }, [page, addToast]);
 
-  useEffect(() => { loadPosts(); }, [loadPosts]);
+  useEffect(() => { loadPosts(true); }, []); // Only on mount
+
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await api.post('/api/files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const { url } = res.data;
+      const isImage = file.type.startsWith('image/');
+      setNewPost(p => ({
+        ...p,
+        imageUrl: isImage ? url : '',
+        fileUrl: !isImage ? url : ''
+      }));
+      addToast('File uploaded successfully!', 'success');
+    } catch {
+      addToast('Failed to upload file.', 'error');
+    }
+  };
 
   const handleCreatePost = async (e) => {
     e.preventDefault();
@@ -227,12 +264,17 @@ export default function Community() {
         {showCreate && (
           <div className="glass p-6 mb-10 animate-slide-down border-2 border-[#0d6b5e]/10">
             <form onSubmit={handleCreatePost} className="space-y-4">
-              <textarea
-                value={newPost.content}
-                onChange={e => setNewPost(p => ({ ...p, content: e.target.value }))}
-                placeholder="What's on your mind? Share your story, a question, or a resource..."
-                className="w-full min-h-[120px] p-4 bg-white/50 rounded-2xl border-2 border-teal-50 focus:border-[#0d6b5e]/20 focus:outline-none transition resize-none text-gray-700"
-              />
+              <div className="relative">
+                <textarea
+                  value={newPost.content}
+                  onChange={e => setNewPost(p => ({ ...p, content: e.target.value.slice(0, 500) }))}
+                  placeholder="What's on your mind? Share your story, a question, or a resource..."
+                  className="w-full min-h-[120px] p-4 bg-white/50 rounded-2xl border-2 border-teal-50 focus:border-[#0d6b5e]/20 focus:outline-none transition resize-none text-gray-700"
+                />
+                <div className="absolute bottom-3 right-4 text-[10px] font-bold" style={{ color: newPost.content.length >= 500 ? '#e11d48' : '#8aada5' }}>
+                  {newPost.content.length}/500
+                </div>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -252,15 +294,48 @@ export default function Community() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                 <button type="button" onClick={() => addToast('Media upload simulated! Ready for demo.', 'info')}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-dashed border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-100 transition">
-                  📎 Attach File / PDF
-                 </button>
-                 <button type="button" onClick={() => addToast('Image attachment simulated!', 'info')}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-dashed border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-100 transition">
-                  🖼️ Add Image
-                 </button>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  id="file-upload"
+                  className="hidden"
+                  onChange={(e) => handleFileUpload(e.target.files[0])}
+                />
+                
+                {/* File Preview */}
+                {(newPost.imageUrl || newPost.fileUrl) && (
+                  <div className="flex items-center justify-between p-3 bg-teal-50/50 rounded-xl border border-teal-100 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-teal-100 rounded flex items-center justify-center text-teal-600">
+                        {newPost.imageUrl ? '🖼️' : '📎'}
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-teal-800 uppercase tracking-tighter">Attached</p>
+                        <p className="text-xs text-teal-600 truncate max-w-[200px]">
+                          {newPost.imageUrl || newPost.fileUrl}
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setNewPost(p => ({ ...p, imageUrl: '', fileUrl: '' }))}
+                      className="text-gray-400 hover:text-red-500 transition p-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                   <button type="button" onClick={() => document.getElementById('file-upload').click()}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-dashed border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-100 transition">
+                    📎 Attach File / PDF
+                   </button>
+                   <button type="button" onClick={() => document.getElementById('file-upload').click()}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-dashed border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-100 transition">
+                    🖼️ Add Image
+                   </button>
+                </div>
               </div>
 
               <button type="submit" disabled={posting}
@@ -296,9 +371,19 @@ export default function Community() {
               <p className="text-sm text-gray-400">Be the first to share your experience with the {filter !== 'ALL' ? filter : 'community'}!</p>
             </div>
           ) : (
-            filteredPosts.map(post => (
-              <PostCard key={post.id} post={post} onLike={handleLike} />
-            ))
+            <>
+              {filteredPosts.map(post => (
+                <PostCard key={post.id} post={post} onLike={handleLike} />
+              ))}
+              {hasMore && (
+                <button 
+                  onClick={() => loadPosts(false)}
+                  className="w-full py-4 glass-hover font-bold text-teal-600 animate-in fade-in slide-in-from-bottom-2"
+                >
+                  Load More Posts
+                </button>
+              )}
+            </>
           )}
         </div>
 

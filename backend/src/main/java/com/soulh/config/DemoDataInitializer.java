@@ -31,6 +31,7 @@ public class DemoDataInitializer implements ApplicationRunner {
     private final com.soulh.repository.CommunityRepository communityRepo;
     private final com.soulh.repository.PostRepository postRepo;
     private final com.soulh.repository.CommentRepository commentRepo;
+    private final com.soulh.repository.ConsultationRepository consultationRepo;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -51,6 +52,31 @@ public class DemoDataInitializer implements ApplicationRunner {
                     .name("Test User").email(testEmail).password(pass)
                     .role(Role.USER).illnessCondition("Anxiety")
                     .isPublicProfile(true).isVerified(true).build());
+        });
+
+        // Force update the demo doctor if they exist to ensure profile fields are populated
+        userRepo.findByEmail("doctor@soulh.com").ifPresent(doc -> {
+            boolean changed = false;
+            if (doc.getBio() == null || doc.getBio().isEmpty()) {
+                doc.setBio("Dr. Fatima Ali is a chronic illness specialist focusing on endometriosis, pelvic pain, and women's health. She has helped hundreds of patients manage long-term conditions with personalized care.");
+                changed = true;
+            }
+            if (doc.getExpertiseAreas() == null || doc.getExpertiseAreas().isEmpty()) {
+                doc.setExpertiseAreas(List.of("Endometriosis management", "Chronic pelvic pain", "PCOS", "Hormonal disorders"));
+                changed = true;
+            }
+            if (doc.getAwards() == null || doc.getAwards().isEmpty()) {
+                doc.setAwards(List.of("Best Gynecologist Award – 2021", "Excellence in Women’s Health – 2020"));
+                changed = true;
+            }
+            if (doc.getPublications() == null || doc.getPublications().isEmpty()) {
+                doc.setPublications(List.of("“Advances in Endometriosis Treatment” – 2022", "“Chronic Pelvic Pain Management” – 2021"));
+                changed = true;
+            }
+            if (changed) {
+                userRepo.save(doc);
+                log.info("Force-updated demo doctor profile fields.");
+            }
         });
 
         // Only seed the rest if DB is empty (besides the test user)
@@ -92,13 +118,37 @@ public class DemoDataInitializer implements ApplicationRunner {
         // ── Doctors ─────────────────────────────────────────────────
         User drArjun = userRepo.save(User.builder()
                 .name("Dr. Arjun Sharma").email("dr.arjun@soulh.demo").password(pass)
-                .role(Role.DOCTOR).illnessCondition(null)
+                .role(Role.DOCTOR).illnessCondition("Chronic Pain and Rheumatology")
+                .experience(12).qualification("MBBS, MD (General Medicine), Fellowship in Pain Management")
+                .hospital("Jaslok Hospital, Mumbai")
+                .bio("Dedicated to helping patients manage chronic invisible illnesses through a holistic approach combining medicine and lifestyle changes.")
+                .expertiseAreas(List.of("Fibromyalgia", "Chronic Fatigue", "Lupus Management", "Mental Wellness"))
+                .awards(List.of("Best Rheumatologist 2024", "Excellence in Patient Care"))
+                .publications(List.of("Managing Chronic Pain in the 21st Century", "The Gut-Brain Connection in Inflammation"))
                 .isPublicProfile(true).isVerified(true).build()); // already verified
 
         User drFatima = userRepo.save(User.builder()
                 .name("Dr. Fatima Ali").email("dr.fatima@soulh.demo").password(pass)
-                .role(Role.DOCTOR).illnessCondition(null)
-                .isPublicProfile(true).isVerified(false).build()); // pending
+                .role(Role.DOCTOR).illnessCondition("Endometriosis Specialist")
+                .experience(12).qualification("MBBS, MD (Gynecology)")
+                .hospital("Apollo Hospitals")
+                .bio("Dr. Fatima Ali is a chronic illness specialist focusing on endometriosis, pelvic pain, and women's health. She has helped hundreds of patients manage long-term conditions with personalized care.")
+                .expertiseAreas(List.of("Endometriosis management", "Chronic pelvic pain", "PCOS", "Hormonal disorders"))
+                .awards(List.of("Best Gynecologist Award – 2021", "Excellence in Women’s Health – 2020"))
+                .publications(List.of("“Advances in Endometriosis Treatment” – 2022", "“Chronic Pelvic Pain Management” – 2021"))
+                .isPublicProfile(true).isVerified(true).build());
+
+        // Requested specific demo doctor
+        userRepo.save(User.builder()
+                .name("Dr. Fatima Ali").email("doctor@soulh.com").password(passwordEncoder.encode("123456"))
+                .role(Role.DOCTOR).illnessCondition("Endometriosis Specialist")
+                .experience(12).qualification("MBBS, MD (Gynecology)")
+                .hospital("Apollo Hospitals")
+                .bio("Dr. Fatima Ali is a chronic illness specialist focusing on endometriosis, pelvic pain, and women's health. She has helped hundreds of patients manage long-term conditions with personalized care.")
+                .expertiseAreas(List.of("Endometriosis management", "Chronic pelvic pain", "PCOS", "Hormonal disorders"))
+                .awards(List.of("Best Gynecologist Award – 2021", "Excellence in Women’s Health – 2020"))
+                .publications(List.of("“Advances in Endometriosis Treatment” – 2022", "“Chronic Pelvic Pain Management” – 2021"))
+                .isPublicProfile(true).isVerified(true).build());
 
         // ── Admins ──────────────────────────────────────────────────
         User admin = userRepo.save(User.builder()
@@ -256,6 +306,23 @@ public class DemoDataInitializer implements ApplicationRunner {
             commentRepo.save(Comment.builder().postId(p1.getId()).author(aisha).content("So happy for you Priya! This gives me hope.").createdAt(now.minusDays(1)).build());
             commentRepo.save(Comment.builder().postId(p2.getId()).author(rahul).content("Pacing really helped me with my symptoms. Take it one step at a time.").createdAt(now.minusHours(12)).build());
             commentRepo.save(Comment.builder().postId(p4.getId()).author(testUser).content("Thank you Dr. Arjun! This research is very helpful.").createdAt(now.minusMinutes(30)).build());
+
+            // ── Seed Demo Consultations ──
+            consultationRepo.save(Consultation.builder()
+                .patientId(priya.getId())
+                .doctorId(drArjun.getId())
+                .condition("Severe Anxiety and Insomnia")
+                .status("CONFIRMED")
+                .scheduledAt(now.plusDays(1))
+                .createdAt(now.minusDays(1)).build());
+
+            consultationRepo.save(Consultation.builder()
+                .patientId(aisha.getId())
+                .doctorId(drArjun.getId())
+                .condition("PCOS related Fatigue")
+                .status("PENDING")
+                .scheduledAt(now.plusDays(2))
+                .createdAt(now.minusHours(2)).build());
         }
         log.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         log.info("Demo Accounts (password for all: Demo@1234)");

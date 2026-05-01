@@ -39,4 +39,11 @@ public class NotificationController {
         notificationService.markAsRead(id);
         return ResponseEntity.ok().build();
     }
+
+    @PatchMapping("/read-all")
+    public ResponseEntity<?> markAllAsRead(@AuthenticationPrincipal UserDetails ud) {
+        User user = userService.getByEmail(ud.getUsername());
+        notificationService.markAllAsRead(user);
+        return ResponseEntity.ok().build();
+    }
 }

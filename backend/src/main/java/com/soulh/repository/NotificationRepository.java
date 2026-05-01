@@ -10,5 +10,6 @@ import java.util.List;
 @Repository
 public interface NotificationRepository extends org.springframework.data.mongodb.repository.MongoRepository<Notification, String> {
     List<Notification> findByUserOrderByCreatedAtDesc(User user);
+    List<Notification> findByUserAndIsReadFalse(User user);
     long countByUserAndIsReadFalse(User user);
 }

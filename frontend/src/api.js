@@ -1,7 +1,8 @@
 import axios from 'axios';
 
+const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
 const api = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL,
 });
 
 // Automatically attach JWT to every request if we have one
@@ -23,7 +24,7 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('soulh_refresh_token');
       if (refreshToken) {
         try {
-          const { data } = await axios.post('http://localhost:8080/api/auth/refresh', { refreshToken });
+          const { data } = await axios.post(`${baseURL}/api/auth/refresh`, { refreshToken });
           localStorage.setItem('soulh_token', data.accessToken);
           api.defaults.headers.common['Authorization'] = `Bearer ${data.accessToken}`;
           return api(originalRequest);

@@ -15,6 +15,7 @@ public class Consultation {
     private String patientId;
     private String doctorId;
     private String slotId;
+    private String condition;
 
     // Status lifecycle: PENDING → CONFIRMED → COMPLETED / CANCELLED
     @Builder.Default

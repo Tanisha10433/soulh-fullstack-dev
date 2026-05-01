@@ -40,6 +40,14 @@ public class User {
     private Integer experience;
     private String qualification;
     private String hospital;
+    private String bio;
+    
+    @Builder.Default
+    private java.util.List<String> expertiseAreas = new java.util.ArrayList<>();
+    @Builder.Default
+    private java.util.List<String> awards = new java.util.ArrayList<>();
+    @Builder.Default
+    private java.util.List<String> publications = new java.util.ArrayList<>();
 
     
     @Builder.Default
@@ -64,6 +72,10 @@ public class User {
     // Doctor verification badge
     @Builder.Default
     private boolean isVerified = false;
+
+    @Builder.Default
+    private boolean isEmailVerified = false;
+    private String emailVerificationToken;
 
     
     private LocalDateTime createdAt;

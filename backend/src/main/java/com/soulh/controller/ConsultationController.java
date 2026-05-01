@@ -211,6 +211,38 @@ public class ConsultationController {
         ));
     }
 
+    private final com.soulh.repository.ConsultationRequestRepository consultationRequestRepository;
+
+    @PostMapping("/consultations/request")
+    public ResponseEntity<?> requestConsultation(
+            @AuthenticationPrincipal UserDetails ud,
+            @RequestBody Map<String, String> body) {
+        User patient = userService.getByEmail(ud.getUsername());
+        String doctorId = body.get("doctorId");
+        String condition = body.get("condition");
+        String slotId = body.get("slotId");
+        
+        var slot = slotRepository.findById(slotId).orElseThrow();
+
+        var request = com.soulh.model.ConsultationRequest.builder()
+                .patientId(patient.getId())
+                .doctorId(doctorId)
+                .condition(condition)
+                .status("PENDING")
+                .scheduledTime(slot.getStartTime())
+                .createdAt(LocalDateTime.now())
+                .build();
+        consultationRequestRepository.save(request);
+
+        // Notify doctor
+        messagingTemplate.convertAndSendToUser(doctorId, "/queue/notifications",
+            Map.of("type", "NEW_CONSULTATION_REQUEST",
+                   "message", "New consultation request from " + patient.getName(),
+                   "requestId", request.getId()));
+
+        return ResponseEntity.ok(Map.of("message", "Request sent to doctor", "requestId", request.getId()));
+    }
+
     // ─── 5. List Consultations ────────────────────────────────────────────────────
 
     @GetMapping("/consultations/my")

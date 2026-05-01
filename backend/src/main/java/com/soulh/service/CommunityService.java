@@ -66,6 +66,12 @@ public class CommunityService {
                 .map(this::mapPostToDTO).collect(Collectors.toList());
     }
 
+    public List<PostResponseDTO> getPaginatedPosts(int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("createdAt").descending());
+        return postRepository.findAll(pageable).getContent().stream()
+                .map(this::mapPostToDTO).collect(Collectors.toList());
+    }
+
     public PostResponseDTO createPost(String communityId, User author, String content, String imageUrl, String fileUrl, String illnessTag, boolean isAnonymous) {
         Post post = Post.builder()
                 .communityId(communityId)
