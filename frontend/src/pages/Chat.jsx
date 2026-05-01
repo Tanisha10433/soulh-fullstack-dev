@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useWebSocket } from '../context/WebSocketContext';
@@ -34,6 +34,11 @@ export default function Chat() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const { stompClient, isConnected } = useWebSocket();
+  const location = useLocation();
+
+  // Handle both /chat/:userId and /chat?recipient=...
+  const queryParams = new URLSearchParams(location.search);
+  const effectiveUserId = userId || queryParams.get('recipient');
 
   const [peer, setPeer] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -52,19 +57,29 @@ export default function Chat() {
   const bottomRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
+  // Fallback peer info from messages
+  const peerFromMessages = useMemo(() => {
+    const m = messages.find(msg => msg.sender.id === effectiveUserId || msg.receiver.id === effectiveUserId);
+    if (!m) return null;
+    return m.sender.id === effectiveUserId ? m.sender : m.receiver;
+  }, [messages, effectiveUserId]);
+
+  const displayPeerName = peer?.name || peerFromMessages?.name || (peer ? (peer.email?.split('@')[0]) : 'Loading...');
+  const isPeerVerified = peer?.verified || peerFromMessages?.isVerified;
+
   // ─── INITIALIZATION ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     
     // Load peer info
-    api.get(`/api/users/${userId}`).then(res => setPeer(res.data)).catch(() => addToast('User not found', 'error'));
+    api.get(`/api/users/${effectiveUserId}`).then(res => setPeer(res.data)).catch(() => addToast('User not found', 'error'));
     
     // Load history
-    api.get(`/api/messages/conversation/${userId}`).then(res => {
+    api.get(`/api/messages/conversation/${effectiveUserId}`).then(res => {
       setMessages(res.data);
       scrollToBottom();
       // Mark all received messages as read via REST immediately on open
-      api.post(`/api/messages/read/${userId}`).catch(() => {});
+      api.post(`/api/messages/read/${effectiveUserId}`).catch(() => {});
     });
 
     if (!stompClient || !isConnected) return;
@@ -108,7 +123,7 @@ export default function Chat() {
       subStatus.unsubscribe();
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current); 
     };
-  }, [userId, myId, stompClient, isConnected]);
+  }, [effectiveUserId, myId, stompClient, isConnected]);
 
   useEffect(() => {
     scrollToBottom();
@@ -119,10 +134,10 @@ export default function Chat() {
 
   const handleTyping = () => {
     if (!stompClient?.connected) return;
-    stompClient.publish({ destination: '/app/chat.typing', body: JSON.stringify({ receiverId: userId, typing: true }) });
+    stompClient.publish({ destination: '/app/chat.typing', body: JSON.stringify({ receiverId: effectiveUserId, typing: true }) });
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
-      stompClient.publish({ destination: '/app/chat.typing', body: JSON.stringify({ receiverId: userId, typing: false }) });
+      stompClient.publish({ destination: '/app/chat.typing', body: JSON.stringify({ receiverId: effectiveUserId, typing: false }) });
     }, 2000);
   };
 
@@ -134,7 +149,7 @@ export default function Chat() {
     stompClient.publish({
       destination: '/app/chat.sendMessage',
       body: JSON.stringify({
-        receiverId: userId,
+        receiverId: effectiveUserId,
         content: content.trim(),
         mood: selectedMood,
         isAnonymous: sendingAnonymous
@@ -192,14 +207,14 @@ export default function Chat() {
 
         <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white relative shrink-0 shadow-sm"
           style={{ background: 'linear-gradient(135deg, #0d6b5e, #0f8b7a)' }}>
-          {peer?.name?.[0]?.toUpperCase() || '?'}
+          {displayPeerName?.[0]?.toUpperCase() || '?'}
           <span className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${peerTyping ? 'bg-[#0d6b5e]' : 'bg-green-500'}`} />
         </div>
 
         <div className="flex-1 min-w-0">
           <h2 className="font-bold text-[15px] text-gray-900 truncate flex items-center gap-1">
-            {peer?.name || 'Loading...'}
-            {peer?.verified && (
+            {displayPeerName}
+            {isPeerVerified && (
               <span className="text-[#0d6b5e] text-[10px] bg-[#e2f1ef] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">Verified</span>
             )}
           </h2>

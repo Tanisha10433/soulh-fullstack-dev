@@ -75,7 +75,7 @@ export default function DoctorPatientList() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Link to={`/chat?recipient=${p.id}`} className="flex-1 py-3 rounded-xl bg-teal-700 text-white text-[11px] font-black uppercase tracking-widest text-center shadow-lg shadow-teal-700/20 hover:scale-105 transition active:scale-95">Chat</Link>
+                  <Link to={`/chat/${p.id}`} className="flex-1 py-3 rounded-xl bg-teal-700 text-white text-[11px] font-black uppercase tracking-widest text-center shadow-lg shadow-teal-700/20 hover:scale-105 transition active:scale-95">Chat</Link>
                   <button className="flex-1 py-3 rounded-xl bg-white border border-slate-200 text-slate-600 text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 transition">View History</button>
                 </div>
               </div>
