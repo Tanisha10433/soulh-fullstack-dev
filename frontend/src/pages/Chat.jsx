@@ -57,6 +57,91 @@ export default function Chat() {
   const bottomRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
+  // ─── VOICE RECORDING ───────────────────────────────────────────────────────
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const timerIntervalRef = useRef(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await uploadVoiceNote(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      timerIntervalRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
+    } catch (err) {
+      addToast('Microphone access denied', 'error');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      clearInterval(timerIntervalRef.current);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.onstop = () => {
+        if (mediaRecorderRef.current?.stream) {
+          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        }
+      };
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      clearInterval(timerIntervalRef.current);
+      addToast('Recording cancelled', 'info');
+    }
+  };
+
+  const formatRecordingTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const uploadVoiceNote = async (blob) => {
+    const formData = new FormData();
+    formData.append('file', blob, 'voice_note.webm');
+    
+    try {
+      const res = await api.post('/api/files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      stompClient.publish({
+        destination: '/app/chat.sendMessage',
+        body: JSON.stringify({
+          receiverId: effectiveUserId,
+          content: '🎤 Voice Message',
+          voiceUrl: res.data.url,
+          isAnonymous: sendingAnonymous
+        })
+      });
+      scrollToBottom();
+    } catch (err) {
+      addToast('Failed to upload voice note', 'error');
+    }
+  };
+
   // Fallback peer info from messages
   const peerFromMessages = useMemo(() => {
     const m = messages.find(msg => msg.sender.id === effectiveUserId || msg.receiver.id === effectiveUserId);
@@ -122,6 +207,7 @@ export default function Chat() {
       subReactions.unsubscribe();
       subStatus.unsubscribe();
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current); 
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
   }, [effectiveUserId, myId, stompClient, isConnected]);
 
@@ -286,6 +372,15 @@ export default function Chat() {
                           </div>
                         )}
 
+                        {msg.voiceUrl && (
+                          <div className="mb-2 mt-1">
+                             <audio controls className="h-8 max-w-[200px] sm:max-w-[240px]">
+                                <source src={`${api.defaults.baseURL}${msg.voiceUrl}`} type="audio/webm" />
+                                Your browser does not support audio.
+                             </audio>
+                          </div>
+                        )}
+
                         <div className="text-[14px] text-gray-800 leading-normal whitespace-pre-wrap word-break-words pr-12">
                           {msg.content}
                         </div>
@@ -367,31 +462,52 @@ export default function Chat() {
       <div className="bg-[#F0F2F5] px-4 py-2 z-30 flex-shrink-0 border-t border-gray-200">
         <form onSubmit={sendMessage} className="max-w-3xl mx-auto flex items-center gap-2">
           
-          <div className="flex-1 bg-white rounded-full flex items-center px-1 shadow-sm border border-gray-200">
-            <button type="button" onClick={() => { setShowEmoji(!showEmoji); setShowStickers(false); }} className="p-2.5 text-gray-500 hover:text-[#0d6b5e]">
-               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </button>
-
-            <textarea
-              ref={inputRef}
-              rows={1}
-              value={text}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              onChange={e => { setText(e.target.value); handleTyping(); }}
-              placeholder="Type a message..."
-              className="flex-1 bg-transparent py-2.5 px-1 text-sm focus:outline-none max-h-32 resize-none"
-            />
-
-              <button type="button" onClick={() => setSendingAnonymous(!sendingAnonymous)}
-                className={`p-2 rounded-full transition ${sendingAnonymous ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-[#0d6b5e]'}`}
-                title={sendingAnonymous ? "Sending Anonymously" : "Send as Me"}>
-                🎭
+          {isRecording ? (
+            <div className="flex-1 bg-white rounded-full flex items-center px-4 py-2 shadow-sm border border-red-200">
+               <div className="w-2 h-2 bg-red-500 rounded-full mr-3 animate-pulse" />
+               <span className="text-red-500 font-bold text-sm flex-1 tracking-tight">
+                 Recording... {formatRecordingTime(recordingTime)}
+               </span>
+               <div className="flex gap-2">
+                 <button type="button" onClick={cancelRecording} className="p-2 text-gray-400 hover:text-gray-600 transition">
+                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                 </button>
+                 <button type="button" onClick={stopRecording} className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition shadow-md">
+                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+                 </button>
+               </div>
+            </div>
+          ) : (
+            <div className="flex-1 bg-white rounded-full flex items-center px-1 shadow-sm border border-gray-200">
+              <button type="button" onClick={() => { setShowEmoji(!showEmoji); setShowStickers(false); }} className="p-2.5 text-gray-500 hover:text-[#0d6b5e]">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </button>
 
-            <button type="button" onClick={() => setShowStickers(!showStickers)} className={`p-2.5 transition ${showStickers ? 'text-[#0d6b5e]' : 'text-gray-400 hover:text-[#0d6b5e]'}`}>
-               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-            </button>
-          </div>
+              <textarea
+                ref={inputRef}
+                rows={1}
+                value={text}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                onChange={e => { setText(e.target.value); handleTyping(); }}
+                placeholder="Type a message..."
+                className="flex-1 bg-transparent py-2.5 px-1 text-sm focus:outline-none max-h-32 resize-none"
+              />
+
+                <button type="button" onClick={() => setSendingAnonymous(!sendingAnonymous)}
+                  className={`p-2 rounded-full transition ${sendingAnonymous ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-[#0d6b5e]'}`}
+                  title={sendingAnonymous ? "Sending Anonymously" : "Send as Me"}>
+                  🎭
+                </button>
+
+              <button type="button" onClick={() => setShowStickers(!showStickers)} className={`p-2.5 transition ${showStickers ? 'text-[#0d6b5e]' : 'text-gray-400 hover:text-[#0d6b5e]'}`}>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              </button>
+              
+              <button type="button" onClick={startRecording} className="p-2.5 text-gray-400 hover:text-[#0d6b5e] transition">
+                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+              </button>
+            </div>
+          )}
 
           <button type="submit" disabled={!text.trim()}
             className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md ${text.trim() ? 'bg-[#0d6b5e] scale-100' : 'bg-gray-400 scale-90'}`}>
