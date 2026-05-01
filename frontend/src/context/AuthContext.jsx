@@ -76,8 +76,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    try {
+      const { data } = await api.get('/api/users/me');
+      localStorage.setItem('soulh_user', JSON.stringify(data));
+      setUser(data);
+    } catch (err) {
+      console.error("Failed to refresh user", err);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, loginWithGoogle, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, loginWithGoogle, register, logout, refreshUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

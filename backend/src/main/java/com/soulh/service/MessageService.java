@@ -53,6 +53,15 @@ public class MessageService {
         if (!connectionService.areConnected(sender, receiver)) {
             throw new RuntimeException("You must be connected with this user to send messages.");
         }
+        
+        // Block check
+        if (sender.getBlockedUserIds().contains(receiver.getId())) {
+            throw new RuntimeException("You have blocked this user.");
+        }
+        if (receiver.getBlockedUserIds().contains(sender.getId())) {
+            throw new RuntimeException("You have been blocked by this user.");
+        }
+
         if ((content == null || content.isBlank()) && (voiceUrl == null || voiceUrl.isBlank())) {
             throw new RuntimeException("Message cannot be empty.");
         }

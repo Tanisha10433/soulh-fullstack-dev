@@ -34,6 +34,7 @@ export default function Chat() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const { stompClient, isConnected } = useWebSocket();
+  const { refreshUser } = useAuth();
   const location = useLocation();
 
   // Handle both /chat/:userId and /chat?recipient=...
@@ -52,6 +53,10 @@ export default function Chat() {
   const [selectedMood, setSelectedMood] = useState(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('HARASSMENT');
+  const [reportDesc, setReportDesc] = useState('');
   
   const inputRef = useRef(null);
   const bottomRef = useRef(null);
@@ -227,6 +232,41 @@ export default function Chat() {
     }, 2000);
   };
 
+  const isBlockedByMe = user?.blockedUserIds?.includes(effectiveUserId);
+  const isBlockingMe = peer?.blockedUserIds?.includes(myId);
+
+  const handleBlock = async () => {
+    setShowOptions(false);
+    if (window.confirm(`Are you sure you want to ${isBlockedByMe ? 'unblock' : 'block'} this user?`)) {
+      try {
+        if (isBlockedByMe) {
+          await api.post(`/api/users/${effectiveUserId}/unblock`);
+          addToast('User unblocked', 'success');
+        } else {
+          await api.post(`/api/users/${effectiveUserId}/block`);
+          addToast('User blocked', 'success');
+        }
+        await refreshUser();
+      } catch {
+        addToast('Action failed', 'error');
+      }
+    }
+  };
+
+  const submitReport = async () => {
+    try {
+      await api.post(`/api/users/${effectiveUserId}/report`, {
+        reason: reportReason,
+        description: reportDesc
+      });
+      addToast('Report submitted. We will investigate.', 'success');
+      setShowReportModal(false);
+      setReportDesc('');
+    } catch {
+      addToast('Failed to submit report', 'error');
+    }
+  };
+
   const sendMessage = (e, contentOverride = null) => {
     if (e) e.preventDefault();
     const content = contentOverride || text;
@@ -309,13 +349,26 @@ export default function Chat() {
           </p>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 relative">
            <button onClick={() => setIsSearching(!isSearching)} className="p-2 text-gray-400 hover:text-[#0d6b5e] rounded-full hover:bg-gray-50 transition">
              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
            </button>
-           <button className="p-2 text-gray-400 hover:text-[#0d6b5e] rounded-full hover:bg-gray-50 transition">
+           <button onClick={() => setShowOptions(!showOptions)} className="p-2 text-gray-400 hover:text-[#0d6b5e] rounded-full hover:bg-gray-50 transition">
              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
            </button>
+
+           {showOptions && (
+             <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-pop-in">
+               <button onClick={handleBlock} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                 <span className="text-lg">{isBlockedByMe ? '🔓' : '🚫'}</span>
+                 {isBlockedByMe ? 'Unblock User' : 'Block User'}
+               </button>
+               <button onClick={() => { setShowReportModal(true); setShowOptions(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-3">
+                 <span className="text-lg">🚩</span>
+                 Report User
+               </button>
+             </div>
+           )}
         </div>
       </div>
 
@@ -462,7 +515,15 @@ export default function Chat() {
       <div className="bg-[#F0F2F5] px-4 py-2 z-30 flex-shrink-0 border-t border-gray-200">
         <form onSubmit={sendMessage} className="max-w-3xl mx-auto flex items-center gap-2">
           
-          {isRecording ? (
+          {isBlockedByMe ? (
+            <div className="flex-1 bg-gray-100 rounded-full px-6 py-3 text-center text-gray-500 text-sm font-bold border border-gray-200">
+               You have blocked this user. <button onClick={handleBlock} className="text-[#0d6b5e] underline ml-1">Unblock</button>
+            </div>
+          ) : isBlockingMe ? (
+            <div className="flex-1 bg-gray-100 rounded-full px-6 py-3 text-center text-gray-500 text-sm font-bold border border-gray-200">
+               You can no longer send messages to this user.
+            </div>
+          ) : isRecording ? (
             <div className="flex-1 bg-white rounded-full flex items-center px-4 py-2 shadow-sm border border-red-200">
                <div className="w-2 h-2 bg-red-500 rounded-full mr-3 animate-pulse" />
                <span className="text-red-500 font-bold text-sm flex-1 tracking-tight">
@@ -509,12 +570,53 @@ export default function Chat() {
             </div>
           )}
 
-          <button type="submit" disabled={!text.trim()}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md ${text.trim() ? 'bg-[#0d6b5e] scale-100' : 'bg-gray-400 scale-90'}`}>
-            <svg className="w-5 h-5 text-white transform rotate-90 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
-          </button>
+          {!isBlockedByMe && !isBlockingMe && (
+            <button type="submit" disabled={!text.trim()}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md ${text.trim() ? 'bg-[#0d6b5e] scale-100' : 'bg-gray-400 scale-90'}`}>
+              <svg className="w-5 h-5 text-white transform rotate-90 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+            </button>
+          )}
         </form>
       </div>
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl animate-pop-in">
+            <h3 className="text-2xl font-black text-gray-900 mb-2">Report User</h3>
+            <p className="text-sm text-gray-500 mb-8 font-medium">Help us keep SoulH safe. Tell us what's wrong with this conversation.</p>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 block">Reason</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['HARASSMENT', 'SPAM', 'INAPPROPRIATE', 'SCAM', 'OTHER'].map(r => (
+                    <button key={r} onClick={() => setReportReason(r)}
+                      className={`py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider transition ${reportReason === r ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 block">Additional Context</label>
+                <textarea 
+                  value={reportDesc} 
+                  onChange={e => setReportDesc(e.target.value)}
+                  placeholder="Tell us more..."
+                  className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-red-500/20 min-h-[100px] resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowReportModal(false)} className="flex-1 py-4 rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition">Cancel</button>
+                <button onClick={submitReport} className="flex-1 py-4 rounded-2xl bg-red-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-red-600/20 hover:scale-105 transition active:scale-95">Submit Report</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Emoji Picker (Hidden behind input) */}
       {showEmoji && (

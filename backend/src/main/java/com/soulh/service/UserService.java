@@ -24,6 +24,7 @@ public class UserService {
     private final com.soulh.repository.MessageRepository messageRepository;
     private final com.soulh.repository.PostRepository postRepository;
     private final com.soulh.repository.ConnectionRequestRepository connectionRequestRepository;
+    private final com.soulh.repository.ReportRepository reportRepository;
 
     public User getByEmail(String email) {
         return userRepository.findByEmail(email)
@@ -124,5 +125,32 @@ public class UserService {
                 .isPublicProfile(true)
                 .build()
         ));
+    }
+
+    public void blockUser(String email, String userIdToBlock) {
+        User user = getByEmail(email);
+        if (user.getId().equals(userIdToBlock)) throw new RuntimeException("Cannot block yourself");
+        if (!user.getBlockedUserIds().contains(userIdToBlock)) {
+            user.getBlockedUserIds().add(userIdToBlock);
+            userRepository.save(user);
+        }
+    }
+
+    public void unblockUser(String email, String userIdToUnblock) {
+        User user = getByEmail(email);
+        user.getBlockedUserIds().remove(userIdToUnblock);
+        userRepository.save(user);
+    }
+
+    public void reportUser(String email, String reportedUserId, String reason, String description) {
+        User reporter = getByEmail(email);
+        com.soulh.model.Report report = com.soulh.model.Report.builder()
+                .reporterId(reporter.getId())
+                .reportedUserId(reportedUserId)
+                .reason(reason)
+                .description(description)
+                .build();
+        report.onCreate();
+        reportRepository.save(report);
     }
 }

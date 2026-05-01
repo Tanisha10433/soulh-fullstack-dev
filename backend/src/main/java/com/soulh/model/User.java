@@ -78,6 +78,9 @@ public class User {
     private String emailVerificationToken;
 
     
+    @Builder.Default
+    private java.util.List<String> blockedUserIds = new java.util.ArrayList<>();
+
     private LocalDateTime createdAt;
 
     

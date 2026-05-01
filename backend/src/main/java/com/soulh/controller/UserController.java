@@ -107,4 +107,25 @@ public class UserController {
     public ResponseEntity<String> getPublicKey(@PathVariable String id) {
         return ResponseEntity.ok(userService.getPublicKey(id));
     }
+
+    @PostMapping("/{id}/block")
+    public ResponseEntity<?> blockUser(@AuthenticationPrincipal UserDetails ud, @PathVariable String id) {
+        userService.blockUser(ud.getUsername(), id);
+        return ResponseEntity.ok(Collections.singletonMap("message", "User blocked"));
+    }
+
+    @PostMapping("/{id}/unblock")
+    public ResponseEntity<?> unblockUser(@AuthenticationPrincipal UserDetails ud, @PathVariable String id) {
+        userService.unblockUser(ud.getUsername(), id);
+        return ResponseEntity.ok(Collections.singletonMap("message", "User unblocked"));
+    }
+
+    @PostMapping("/{id}/report")
+    public ResponseEntity<?> reportUser(
+            @AuthenticationPrincipal UserDetails ud,
+            @PathVariable String id,
+            @RequestBody Map<String, String> body) {
+        userService.reportUser(ud.getUsername(), id, body.get("reason"), body.get("description"));
+        return ResponseEntity.ok(Collections.singletonMap("message", "Report submitted"));
+    }
 }
