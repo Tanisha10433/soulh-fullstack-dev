@@ -21,9 +21,10 @@ export function AuthProvider({ children }) {
     // Verify the token is still accepted by the backend
     // (After a backend restart with H2 in-memory DB, users are wiped — token becomes invalid)
     api.get('/api/users/me')
-      .then(() => {
-        // Token is valid — restore user
-        setUser(JSON.parse(stored));
+      .then((res) => {
+        // Token is valid — update/restore user from fresh API data
+        setUser(res.data);
+        localStorage.setItem('soulh_user', JSON.stringify(res.data));
       })
       .catch(() => {
         // Token rejected (DB wiped or expired) — clear stale state silently
