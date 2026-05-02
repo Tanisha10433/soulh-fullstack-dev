@@ -62,6 +62,12 @@ export default function Chat() {
   const bottomRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
+  // Instant peer info from session storage (saved by Dashboard)
+  const cachedPeer = useMemo(() => {
+    const saved = sessionStorage.getItem(`peer_${effectiveUserId}`);
+    return saved ? JSON.parse(saved) : null;
+  }, [effectiveUserId]);
+
   // ─── VOICE RECORDING ───────────────────────────────────────────────────────
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -154,8 +160,8 @@ export default function Chat() {
     return m.sender.id === effectiveUserId ? m.sender : m.receiver;
   }, [messages, effectiveUserId]);
 
-  const displayPeerName = peer?.name || peerFromMessages?.name || (peer ? (peer.email?.split('@')[0]) : 'Loading...');
-  const isPeerVerified = peer?.verified || peerFromMessages?.isVerified;
+  const displayPeerName = peer?.name || cachedPeer?.name || peerFromMessages?.name || (peer ? (peer.email?.split('@')[0]) : (cachedPeer ? cachedPeer.email?.split('@')[0] : 'Loading...'));
+  const isPeerVerified = peer?.verified || cachedPeer?.verified || peerFromMessages?.isVerified;
 
   // ─── INITIALIZATION ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -176,14 +182,14 @@ export default function Chat() {
 
     const sub = stompClient.subscribe(`/user/${myId}/queue/messages`, (payload) => {
       const newMsg = JSON.parse(payload.body);
-      if (newMsg.sender.id === userId || newMsg.receiver.id === userId) {
+      if (newMsg.sender.id === effectiveUserId || newMsg.receiver.id === effectiveUserId) {
         setMessages(prev => {
           const exists = prev.find(m => m.id === newMsg.id);
           if (exists) return prev.map(m => m.id === newMsg.id ? newMsg : m);
           return [...prev, newMsg];
         });
         scrollToBottom();
-        if (newMsg.sender.id === userId) {
+        if (newMsg.sender.id === effectiveUserId) {
           stompClient.publish({ destination: '/app/chat.read', body: JSON.stringify({ messageId: newMsg.id }) });
         }
       }
@@ -191,7 +197,7 @@ export default function Chat() {
 
     const subTyping = stompClient.subscribe(`/user/${myId}/queue/typing`, (payload) => {
       const data = JSON.parse(payload.body);
-      if (data.senderId === userId) setPeerTyping(data.typing);
+      if (data.senderId === effectiveUserId) setPeerTyping(data.typing);
     });
 
     const subReactions = stompClient.subscribe(`/user/${myId}/queue/reactions`, (payload) => {
@@ -201,7 +207,7 @@ export default function Chat() {
 
     const subStatus = stompClient.subscribe(`/user/${myId}/queue/read-receipts`, (payload) => {
       const data = JSON.parse(payload.body);
-      if (data.byUserId === userId) {
+      if (data.byUserId === effectiveUserId) {
         setMessages(prev => prev.map(m => (m.sender.id === myId && !m.readAt) ? { ...m, status: 'read', readAt: data.readBefore } : m));
       }
     });
