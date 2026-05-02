@@ -68,6 +68,13 @@ export default function Chat() {
     return saved ? JSON.parse(saved) : null;
   }, [effectiveUserId]);
 
+  // Initialize peer from cache immediately so name shows instantly
+  useEffect(() => {
+    if (cachedPeer && !peer) {
+      setPeer(cachedPeer);
+    }
+  }, [cachedPeer]);
+
   // ─── VOICE RECORDING ───────────────────────────────────────────────────────
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -163,22 +170,31 @@ export default function Chat() {
   const displayPeerName = peer?.name || cachedPeer?.name || peerFromMessages?.name || peer?.email?.split('@')[0] || cachedPeer?.email?.split('@')[0] || 'Loading...';
   const isPeerVerified = peer?.verified || cachedPeer?.verified || peerFromMessages?.isVerified;
 
-  // ─── INITIALIZATION ────────────────────────────────────────────────────────
+  // ─── LOAD PEER & MESSAGES (always runs) ────────────────────────────────────
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
-    
-    // Load peer info
-    api.get(`/api/users/${effectiveUserId}`).then(res => setPeer(res.data)).catch(() => addToast('User not found', 'error'));
-    
-    // Load history
+    if (!effectiveUserId) return;
+
+    // Load peer info from API (overrides cache with fresh data)
+    api.get(`/api/users/${effectiveUserId}`)
+      .then(res => {
+        setPeer(res.data);
+        // Update cache with fresh data
+        sessionStorage.setItem(`peer_${effectiveUserId}`, JSON.stringify(res.data));
+      })
+      .catch(() => addToast('Could not load user info', 'error'));
+
+    // Load message history
     api.get(`/api/messages/conversation/${effectiveUserId}`).then(res => {
       setMessages(res.data);
       scrollToBottom();
-      // Mark all received messages as read via REST immediately on open
       api.post(`/api/messages/read/${effectiveUserId}`).catch(() => {});
     });
+  }, [effectiveUserId, user]);
 
-    if (!stompClient || !isConnected) return;
+  // ─── WEBSOCKET SUBSCRIPTIONS (runs when connected) ─────────────────────────
+  useEffect(() => {
+    if (!stompClient || !isConnected || !myId || !effectiveUserId) return;
 
     const sub = stompClient.subscribe(`/user/${myId}/queue/messages`, (payload) => {
       const newMsg = JSON.parse(payload.body);
@@ -212,12 +228,12 @@ export default function Chat() {
       }
     });
 
-    return () => { 
-      sub.unsubscribe(); 
+    return () => {
+      sub.unsubscribe();
       subTyping.unsubscribe();
       subReactions.unsubscribe();
       subStatus.unsubscribe();
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current); 
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
   }, [effectiveUserId, myId, stompClient, isConnected]);
