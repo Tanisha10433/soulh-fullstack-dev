@@ -128,7 +128,10 @@ export default function ConsultationList() {
                     </div>
                     <div className="flex gap-3">
                       <button onClick={() => handleComplete(c.id)} className="px-6 py-3 rounded-2xl bg-slate-50 text-slate-400 text-xs font-black uppercase tracking-widest hover:bg-teal-50 hover:text-teal-600 transition">Archive</button>
-                      <Link to={`/chat/${c.patientId}`} className="px-8 py-3 rounded-2xl bg-teal-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-teal-600/20 hover:scale-105 transition active:scale-95 flex items-center gap-2">
+                      <Link 
+                        to={`/chat/${c.patientId}`} 
+                        onClick={() => sessionStorage.setItem(`peer_${c.patientId}`, JSON.stringify({ id: c.patientId, name: c.patientName }))}
+                        className="px-8 py-3 rounded-2xl bg-teal-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-teal-600/20 hover:scale-105 transition active:scale-95 flex items-center gap-2">
                          Enter Chat ➔
                       </Link>
                     </div>
@@ -150,7 +153,10 @@ export default function ConsultationList() {
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Guidance Provided on {new Date(c.scheduledTime).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    <Link to={`/chat/${c.patientId}`} className="w-11 h-11 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-300 hover:text-teal-600 hover:border-teal-200 transition shadow-sm">💬</Link>
+                    <Link 
+                      to={`/chat/${c.patientId}`} 
+                      onClick={() => sessionStorage.setItem(`peer_${c.patientId}`, JSON.stringify({ id: c.patientId, name: c.patientName }))}
+                      className="w-11 h-11 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-300 hover:text-teal-600 hover:border-teal-200 transition shadow-sm">💬</Link>
                   </div>
                 ))}
               </div>

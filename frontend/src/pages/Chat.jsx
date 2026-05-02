@@ -160,7 +160,7 @@ export default function Chat() {
     return m.sender.id === effectiveUserId ? m.sender : m.receiver;
   }, [messages, effectiveUserId]);
 
-  const displayPeerName = peer?.name || cachedPeer?.name || peerFromMessages?.name || (peer ? (peer.email?.split('@')[0]) : (cachedPeer ? cachedPeer.email?.split('@')[0] : 'Loading...'));
+  const displayPeerName = peer?.name || cachedPeer?.name || peerFromMessages?.name || peer?.email?.split('@')[0] || cachedPeer?.email?.split('@')[0] || 'Loading...';
   const isPeerVerified = peer?.verified || cachedPeer?.verified || peerFromMessages?.isVerified;
 
   // ─── INITIALIZATION ────────────────────────────────────────────────────────
