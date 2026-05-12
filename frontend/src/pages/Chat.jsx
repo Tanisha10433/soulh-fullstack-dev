@@ -160,15 +160,31 @@ export default function Chat() {
     }
   };
 
-  // Fallback peer info from messages
+  // Fallback peer info from messages — null-safe
   const peerFromMessages = useMemo(() => {
-    const m = messages.find(msg => msg.sender.id === effectiveUserId || msg.receiver.id === effectiveUserId);
-    if (!m) return null;
-    return m.sender.id === effectiveUserId ? m.sender : m.receiver;
+    for (const msg of messages) {
+      const sId = msg.sender?.id ?? msg.senderId;
+      const rId = msg.receiver?.id ?? msg.receiverId;
+      if (sId === effectiveUserId) {
+        return { id: sId, name: msg.sender?.name ?? msg.senderName ?? null };
+      }
+      if (rId === effectiveUserId) {
+        return { id: rId, name: msg.receiver?.name ?? msg.receiverName ?? null };
+      }
+    }
+    return null;
   }, [messages, effectiveUserId]);
 
-  const displayPeerName = peer?.name || cachedPeer?.name || peerFromMessages?.name || peer?.email?.split('@')[0] || cachedPeer?.email?.split('@')[0] || 'Loading...';
-  const isPeerVerified = peer?.verified || cachedPeer?.verified || peerFromMessages?.isVerified;
+  // Derive peer name from all available sources
+  const displayPeerName = (
+    peer?.name ||
+    cachedPeer?.name ||
+    peerFromMessages?.name ||
+    peer?.email?.split('@')[0] ||
+    cachedPeer?.email?.split('@')[0] ||
+    'Loading...'
+  );
+  const isPeerVerified = peer?.verified ?? peer?.isVerified ?? cachedPeer?.verified ?? cachedPeer?.isVerified ?? peerFromMessages?.isVerified ?? false;
 
   // ─── LOAD PEER & MESSAGES (always runs) ────────────────────────────────────
   useEffect(() => {
@@ -198,14 +214,31 @@ export default function Chat() {
 
     const sub = stompClient.subscribe(`/user/${myId}/queue/messages`, (payload) => {
       const newMsg = JSON.parse(payload.body);
-      if (newMsg.sender.id === effectiveUserId || newMsg.receiver.id === effectiveUserId) {
+      // Debug — remove after verifying
+      console.debug('[Chat WS] Incoming message:', JSON.stringify(newMsg, null, 2));
+
+      // Normalize: support both nested sender/receiver objects and flat senderId/receiverName fields
+      const msgSenderId = newMsg.sender?.id ?? newMsg.senderId;
+      const msgReceiverId = newMsg.receiver?.id ?? newMsg.receiverId;
+
+      if (msgSenderId === effectiveUserId || msgReceiverId === effectiveUserId) {
+        // If peer name is still unknown, try to extract from message
+        if (!peer?.name) {
+          const peerName = msgSenderId === effectiveUserId
+            ? (newMsg.sender?.name ?? newMsg.senderName)
+            : (newMsg.receiver?.name ?? newMsg.receiverName);
+          if (peerName) {
+            setPeer(prev => prev ? { ...prev, name: peerName } : { id: effectiveUserId, name: peerName });
+          }
+        }
+
         setMessages(prev => {
           const exists = prev.find(m => m.id === newMsg.id);
           if (exists) return prev.map(m => m.id === newMsg.id ? newMsg : m);
           return [...prev, newMsg];
         });
         scrollToBottom();
-        if (newMsg.sender.id === effectiveUserId) {
+        if (msgSenderId === effectiveUserId) {
           stompClient.publish({ destination: '/app/chat.read', body: JSON.stringify({ messageId: newMsg.id }) });
         }
       }
@@ -224,7 +257,12 @@ export default function Chat() {
     const subStatus = stompClient.subscribe(`/user/${myId}/queue/read-receipts`, (payload) => {
       const data = JSON.parse(payload.body);
       if (data.byUserId === effectiveUserId) {
-        setMessages(prev => prev.map(m => (m.sender.id === myId && !m.readAt) ? { ...m, status: 'read', readAt: data.readBefore } : m));
+        setMessages(prev => prev.map(m => {
+          const mySenderId = m.sender?.id ?? m.senderId;
+          return (mySenderId === myId && !m.readAt)
+            ? { ...m, status: 'read', readAt: data.readBefore }
+            : m;
+        }));
       }
     });
 
@@ -319,7 +357,8 @@ export default function Chat() {
     });
   };
 
-  const isMyMessage = (msg) => msg.sender.id === myId;
+  // null-safe: support both nested sender object and flat senderId field
+  const isMyMessage = (msg) => (msg.sender?.id ?? msg.senderId) === myId;
   const formatTime = (ts) => ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
   
   const formatDateLabel = (ts) => {

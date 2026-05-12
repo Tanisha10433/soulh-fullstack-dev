@@ -111,10 +111,19 @@ public class MessageService {
                 .id(receiver.getId()).name(receiver.getName())
                 .build() : null;
 
+        String resolvedSenderName = message.isAnonymous() ? "Anonymous Peer"
+                : (sender != null ? sender.getName() : "Unknown User");
+        String resolvedReceiverName = receiver != null ? receiver.getName() : "Unknown User";
+
         return MessageResponseDTO.builder()
                 .id(message.getId())
                 .sender(senderDTO)
                 .receiver(receiverDTO)
+                // Flat fields — always reliable
+                .senderId(message.getSenderId())
+                .senderName(resolvedSenderName)
+                .receiverId(message.getReceiverId())
+                .receiverName(resolvedReceiverName)
                 .content(message.getContent())
                 .voiceUrl(message.getVoiceUrl())
                 .mood(message.getMood())
