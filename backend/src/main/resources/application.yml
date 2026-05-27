@@ -3,17 +3,14 @@ spring:
     name: soulh-backend
   data:
     mongodb:
-      host: localhost
-      port: 27017
-      database: soulh_db
-      # To use MongoDB Atlas in production, replace host/port with:
-      # uri: mongodb+srv://<user>:<pass>@cluster.mongodb.net/soulh_db
+      # Local dev uses localhost; production uses MONGODB_URI from env
+      uri: ${MONGODB_URI:mongodb://localhost:27017/soulh_db}
   h2:
     console:
       enabled: true
       path: /h2-console
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 app:
   jwt:
