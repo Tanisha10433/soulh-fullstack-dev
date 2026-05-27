@@ -42,8 +42,7 @@ export default function BookConsultation() {
     
     setBooking(true);
     try {
-      // In a support-first model, this creates a 'Guidance Request'
-      await api.post('/api/doctor/requests', {
+      await api.post('/api/consultations/request', {
         doctorId: doctorId,
         condition: condition,
         scheduledTime: new Date(selectedSlot.startTime).toISOString()
@@ -52,7 +51,7 @@ export default function BookConsultation() {
       setStep(3);
       addToast('Guidance request sent! 🌿', 'success');
     } catch (err) {
-      addToast('Failed to send request.', 'error');
+      addToast(err.response?.data?.message || 'Failed to send request.', 'error');
     } finally {
       setBooking(false);
     }

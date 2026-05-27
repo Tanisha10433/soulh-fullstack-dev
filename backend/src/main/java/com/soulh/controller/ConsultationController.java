@@ -221,15 +221,28 @@ public class ConsultationController {
         String doctorId = body.get("doctorId");
         String condition = body.get("condition");
         String slotId = body.get("slotId");
-        
-        var slot = slotRepository.findById(slotId).orElseThrow();
+        String scheduledTimeStr = body.get("scheduledTime");
+
+        // slotId is optional — use it if provided, otherwise use scheduledTime directly
+        java.time.LocalDateTime scheduledTime;
+        if (slotId != null && !slotId.isBlank()) {
+            var slot = slotRepository.findById(slotId).orElseThrow(() -> new RuntimeException("Slot not found"));
+            scheduledTime = slot.getStartTime();
+        } else if (scheduledTimeStr != null && !scheduledTimeStr.isBlank()) {
+            // Parse ISO 8601 timestamp from frontend
+            scheduledTime = java.time.Instant.parse(scheduledTimeStr)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDateTime();
+        } else {
+            scheduledTime = LocalDateTime.now().plusDays(1);
+        }
 
         var request = com.soulh.model.ConsultationRequest.builder()
                 .patientId(patient.getId())
                 .doctorId(doctorId)
                 .condition(condition)
                 .status("PENDING")
-                .scheduledTime(slot.getStartTime())
+                .scheduledTime(scheduledTime)
                 .createdAt(LocalDateTime.now())
                 .build();
         consultationRequestRepository.save(request);

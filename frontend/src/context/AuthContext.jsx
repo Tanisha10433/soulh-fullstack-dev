@@ -37,37 +37,63 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await api.post('/api/auth/login', { email, password });
+    // Store token first so subsequent API calls work
     localStorage.setItem('soulh_token', data.token);
-    localStorage.setItem('soulh_refresh_token', data.refreshToken);
-    localStorage.setItem('soulh_user', JSON.stringify(data));
-    setUser(data);
-    // Initialize E2E keys (generates if new, uploads public key)
-    if (data.id) {
-      const pubKey = await initE2EKeys(data.id);
+    if (data.refreshToken) localStorage.setItem('soulh_refresh_token', data.refreshToken);
+
+    // Fetch full user profile to guarantee all fields (including id) are present
+    let userObj = data;
+    try {
+      const meRes = await api.get('/api/users/me');
+      userObj = { ...data, ...meRes.data }; // merge: fresh profile overrides auth response
+    } catch (e) {
+      // Fallback to auth response data if /me fails
+    }
+    localStorage.setItem('soulh_user', JSON.stringify(userObj));
+    setUser(userObj);
+
+    // Initialize E2E keys
+    if (userObj.id) {
+      const pubKey = await initE2EKeys(userObj.id);
       api.post('/api/users/me/public-key', { publicKey: pubKey }).catch(() => {});
     }
-    return data;
+    return userObj;
   };
 
   const loginWithGoogle = async (idToken) => {
     const { data } = await api.post('/api/auth/oauth2/google', { idToken });
     localStorage.setItem('soulh_token', data.token);
-    localStorage.setItem('soulh_user', JSON.stringify(data));
-    setUser(data);
-    if (data.id) {
-      const pubKey = await initE2EKeys(data.id);
+
+    // Fetch full profile so id and all fields are present
+    let userObj = data;
+    try {
+      const meRes = await api.get('/api/users/me');
+      userObj = { ...data, ...meRes.data };
+    } catch (e) {}
+    localStorage.setItem('soulh_user', JSON.stringify(userObj));
+    setUser(userObj);
+
+    if (userObj.id) {
+      const pubKey = await initE2EKeys(userObj.id);
       api.post('/api/users/me/public-key', { publicKey: pubKey }).catch(() => {});
     }
-    return data;
+    return userObj;
   };
 
   const register = async (payload) => {
     const { data } = await api.post('/api/auth/register', payload);
     localStorage.setItem('soulh_token', data.token);
-    localStorage.setItem('soulh_refresh_token', data.refreshToken);
-    localStorage.setItem('soulh_user', JSON.stringify(data));
-    setUser(data);
-    return data;
+    if (data.refreshToken) localStorage.setItem('soulh_refresh_token', data.refreshToken);
+
+    // Fetch full profile to ensure id is stored correctly
+    let userObj = data;
+    try {
+      const meRes = await api.get('/api/users/me');
+      userObj = { ...data, ...meRes.data };
+    } catch (e) {}
+    localStorage.setItem('soulh_user', JSON.stringify(userObj));
+    setUser(userObj);
+    return userObj;
   };
 
   const logout = () => {

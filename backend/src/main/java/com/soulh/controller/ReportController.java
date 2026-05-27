@@ -30,8 +30,8 @@ public class ReportController {
         User reported = userService.getById(reportedUserId);
         
         Report report = Report.builder()
-                .reporter(reporter)
-                .reportedUser(reported)
+                .reporterId(reporter.getId())
+                .reportedUserId(reported.getId())
                 .reason(body.get("reason"))
                 .build();
                 

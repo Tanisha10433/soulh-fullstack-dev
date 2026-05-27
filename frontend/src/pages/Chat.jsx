@@ -182,8 +182,9 @@ export default function Chat() {
     peerFromMessages?.name ||
     peer?.email?.split('@')[0] ||
     cachedPeer?.email?.split('@')[0] ||
-    'Loading...'
+    'Fetching...'
   );
+  const isPeerNameLoading = !peer?.name && !cachedPeer?.name && !peerFromMessages?.name;
   const isPeerVerified = peer?.verified ?? peer?.isVerified ?? cachedPeer?.verified ?? cachedPeer?.isVerified ?? peerFromMessages?.isVerified ?? false;
 
   // ─── LOAD PEER & MESSAGES (always runs) ────────────────────────────────────
@@ -400,9 +401,15 @@ export default function Chat() {
 
         <div className="flex-1 min-w-0">
           <h2 className="font-bold text-[15px] text-gray-900 truncate flex items-center gap-1">
-            {displayPeerName}
-            {isPeerVerified && (
-              <span className="text-[#0d6b5e] text-[10px] bg-[#e2f1ef] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">Verified</span>
+            {isPeerNameLoading ? (
+              <span className="inline-block w-28 h-4 bg-gray-200 rounded-full animate-pulse" />
+            ) : (
+              <>
+                {displayPeerName}
+                {isPeerVerified && (
+                  <span className="text-[#0d6b5e] text-[10px] bg-[#e2f1ef] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">Verified</span>
+                )}
+              </>
             )}
           </h2>
           <p className="text-[11px] font-medium leading-none" style={{ color: peerTyping ? '#0d6b5e' : '#6b7280' }}>
