@@ -22,9 +22,11 @@ export const WebSocketProvider = ({ children }) => {
 
     const token = localStorage.getItem('soulh_token');
 
+    const apiBaseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
     const client = new Client({
       // SockJS factory — recreated on each reconnect attempt
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      webSocketFactory: () => new SockJS(`${apiBaseURL}/ws`),
       reconnectDelay: 5000,
 
       // Pass JWT in STOMP CONNECT frame so Spring Security accepts it
