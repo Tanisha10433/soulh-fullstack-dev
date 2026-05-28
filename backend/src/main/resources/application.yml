@@ -5,6 +5,7 @@ spring:
     mongodb:
       # Local dev uses localhost; production uses MONGODB_URI from env
       uri: ${MONGODB_URI:mongodb://localhost:27017/soulh_db}
+      auto-index-creation: true
   h2:
     console:
       enabled: true
@@ -18,6 +19,7 @@ app:
     expiration: 86400000 # 24 hours in milliseconds
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
+  google-client-id: ${VITE_GOOGLE_CLIENT_ID:${GOOGLE_CLIENT_ID:YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com}}
 
   razorpay:
     # Use TEST mode keys — sign up free at razorpay.com → Settings → API Keys

@@ -163,6 +163,18 @@ public class ConsultationController {
         String razorpayPaymentId = body.get("razorpayPaymentId");
         String razorpayOrderId = body.get("razorpayOrderId");
 
+        // Verify payment signature in production mode (non-demo keys)
+        if (!razorpayKeyId.equals("rzp_test_demo") && !razorpaySecret.equals("demo_secret")) {
+            String razorpaySignature = body.get("razorpaySignature");
+            if (razorpaySignature == null || razorpaySignature.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Payment signature is required"));
+            }
+            String expectedSignature = calculateHmacSha256(razorpayOrderId + "|" + razorpayPaymentId, razorpaySecret);
+            if (!expectedSignature.equals(razorpaySignature)) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Invalid payment signature. Verification failed."));
+            }
+        }
+
         AvailabilitySlot slot = slotRepository.findById(slotId)
                 .orElseThrow(() -> new RuntimeException("Slot not found"));
 
@@ -345,5 +357,23 @@ public class ConsultationController {
                    "consultationId", id));
 
         return ResponseEntity.ok(Map.of("message", "Summary saved"));
+    }
+
+    private String calculateHmacSha256(String data, String secret) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            mac.init(secretKey);
+            byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to calculate signature", e);
+        }
     }
 }

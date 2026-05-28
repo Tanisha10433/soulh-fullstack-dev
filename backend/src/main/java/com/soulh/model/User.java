@@ -22,6 +22,7 @@ public class User {
     private String id;
 
     
+    @org.springframework.data.mongodb.core.index.Indexed(unique = true)
     private String email;
 
     @JsonIgnore // NEVER return password in API responses

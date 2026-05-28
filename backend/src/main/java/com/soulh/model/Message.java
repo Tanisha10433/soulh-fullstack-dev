@@ -21,7 +21,9 @@ public class Message {
     @org.springframework.data.annotation.Id
     private String id;
 
+    @org.springframework.data.mongodb.core.index.Indexed
     private String senderId;
+    @org.springframework.data.mongodb.core.index.Indexed
     private String receiverId;
 
     private String content;
@@ -46,6 +48,7 @@ public class Message {
     @Builder.Default
     private Map<String, java.util.Set<String>> reactions = new HashMap<>();
 
+    @org.springframework.data.mongodb.core.index.Indexed
     private LocalDateTime sentAt;
     private LocalDateTime readAt;   // null = unread
 
