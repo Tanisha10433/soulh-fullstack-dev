@@ -22,13 +22,11 @@ public class ConnectionRequest {
     private String id;
 
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    
-    
+    @org.springframework.data.mongodb.core.mapping.DocumentReference
     private User sender;
 
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    
-    
+    @org.springframework.data.mongodb.core.mapping.DocumentReference
     private User receiver;
 
     

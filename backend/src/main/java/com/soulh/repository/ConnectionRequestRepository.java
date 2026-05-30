@@ -16,13 +16,13 @@ public interface ConnectionRequestRepository extends org.springframework.data.mo
 
     // JOIN FETCH sender+receiver in ONE query — prevents N+1 selects
     
-    @org.springframework.data.mongodb.repository.Query("{ '$or': [ { 'sender._id': ?0 }, { 'receiver._id': ?0 } ], 'status': ?1 }")
+    @org.springframework.data.mongodb.repository.Query("{ '$or': [ { 'sender': ?0 }, { 'receiver': ?0 } ], 'status': ?1 }")
     List<ConnectionRequest> findPendingForUser(String userId, RequestStatus status);
 
-    @org.springframework.data.mongodb.repository.Query("{ '$or': [ { 'sender._id': ?0 }, { 'receiver._id': ?0 } ], 'status': ?1 }")
+    @org.springframework.data.mongodb.repository.Query("{ '$or': [ { 'sender': ?0 }, { 'receiver': ?0 } ], 'status': ?1 }")
     List<ConnectionRequest> findAcceptedForUser(String userId, RequestStatus status);
 
-    @org.springframework.data.mongodb.repository.Query("{ '$or': [ { 'sender._id': ?0 }, { 'receiver._id': ?0 } ] }")
+    @org.springframework.data.mongodb.repository.Query("{ '$or': [ { 'sender': ?0 }, { 'receiver': ?0 } ] }")
     List<ConnectionRequest> findAllForUser(String userId);
 
     Optional<ConnectionRequest> findBySenderAndReceiver(User sender, User receiver);

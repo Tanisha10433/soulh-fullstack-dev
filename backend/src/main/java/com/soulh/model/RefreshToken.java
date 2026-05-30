@@ -20,8 +20,7 @@ public class RefreshToken {
     
     private String id;
 
-    
-    
+    @org.springframework.data.mongodb.core.mapping.DocumentReference
     private User user;
 
     
