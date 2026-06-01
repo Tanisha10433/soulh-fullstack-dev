@@ -2,12 +2,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
 import api from '../api';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { isDarkMode } = useTheme();
 
   const [profile, setProfile] = useState(null);
   const [condition, setCondition] = useState('');
@@ -430,7 +432,11 @@ export default function Dashboard() {
 
                     return (
                       <div key={post.id} className="rounded-2xl overflow-hidden"
-                        style={{ background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(13,107,94,0.1)', boxShadow: '0 2px 12px rgba(13,107,94,0.05)' }}>
+                        style={{
+                          background: isDarkMode ? '#14221f' : 'rgba(255,255,255,0.85)',
+                          border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(13,107,94,0.1)',
+                          boxShadow: '0 2px 12px rgba(13,107,94,0.05)'
+                        }}>
 
                         {/* Post header */}
                         <div className="flex items-center gap-3 px-4 pt-3 pb-2">
@@ -440,9 +446,9 @@ export default function Dashboard() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="font-bold text-sm truncate" style={{ color: '#1a3530' }}>
+                              <p className="font-bold text-sm truncate" style={{ color: isDarkMode ? '#f1f5f9' : '#1a3530' }}>
                                 {post.author?.name || 'Unknown'}
-                                {post.author?.verified && <span className="ml-1 text-teal-600 text-xs">✓</span>}
+                                {post.author?.verified && <span className="text-teal-600 text-xs ml-1">✓</span>}
                               </p>
                               {isAnon && (
                                 <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
@@ -455,10 +461,10 @@ export default function Dashboard() {
                           {isOwn && !isAnon && editingPostId !== post.id && (
                             <div className="flex gap-1 flex-shrink-0">
                               <button onClick={() => { setEditingPostId(post.id); setEditContent(post.content); }}
-                                className="p-1.5 rounded-lg text-[11px] transition hover:bg-teal-50" style={{ color: '#8aada5' }}
+                                  className={`p-1.5 rounded-lg text-[11px] transition ${isDarkMode ? 'hover:bg-[#253f3a]' : 'hover:bg-teal-50'}`} style={{ color: '#8aada5' }}
                                 title="Edit">✏️</button>
                               <button onClick={() => deletePost(post.id)}
-                                className="p-1.5 rounded-lg text-[11px] transition hover:bg-red-50" style={{ color: '#8aada5' }}
+                                  className={`p-1.5 rounded-lg text-[11px] transition ${isDarkMode ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}`} style={{ color: '#8aada5' }}
                                 title="Delete">🗑</button>
                             </div>
                           )}
@@ -478,7 +484,7 @@ export default function Dashboard() {
                               </div>
                             </div>
                           ) : (
-                            <p className="text-sm leading-relaxed" style={{ color: '#1a3530' }}>{post.content}</p>
+                            <p className="text-sm leading-relaxed" style={{ color: isDarkMode ? '#e2e8f0' : '#1a3530' }}>{post.content}</p>
                           )}
                         </div>
 
@@ -513,7 +519,10 @@ export default function Dashboard() {
                                     {(c.author?.name || '?')[0]}
                                   </div>
                                   <div className="rounded-xl px-3 py-1.5 text-xs leading-relaxed flex-1"
-                                    style={{ background: 'rgba(13,107,94,0.06)', color: '#1a3530' }}>
+                                    style={{
+                                      background: isDarkMode ? '#1a2d29' : 'rgba(13,107,94,0.06)',
+                                      color: isDarkMode ? '#f1f5f9' : '#1a3530'
+                                    }}>
                                     <strong>{c.author?.name || 'User'}: </strong>{c.content}
                                   </div>
                                 </div>

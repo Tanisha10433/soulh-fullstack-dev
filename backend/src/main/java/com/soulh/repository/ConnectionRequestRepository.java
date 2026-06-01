@@ -16,14 +16,26 @@ public interface ConnectionRequestRepository extends org.springframework.data.mo
 
     // JOIN FETCH sender+receiver in ONE query — prevents N+1 selects
     
-    @org.springframework.data.mongodb.repository.Query("{ '$or': [ { 'sender': ?0 }, { 'receiver': ?0 } ], 'status': ?1 }")
-    List<ConnectionRequest> findPendingForUser(String userId, RequestStatus status);
+    List<ConnectionRequest> findBySenderAndStatusOrReceiverAndStatus(User sender, RequestStatus status1, User receiver, RequestStatus status2);
+    List<ConnectionRequest> findBySenderOrReceiver(User sender, User receiver);
 
-    @org.springframework.data.mongodb.repository.Query("{ '$or': [ { 'sender': ?0 }, { 'receiver': ?0 } ], 'status': ?1 }")
-    List<ConnectionRequest> findAcceptedForUser(String userId, RequestStatus status);
+    default List<ConnectionRequest> findPendingForUser(String userId, RequestStatus status) {
+        User user = new User();
+        user.setId(userId);
+        return findBySenderAndStatusOrReceiverAndStatus(user, status, user, status);
+    }
 
-    @org.springframework.data.mongodb.repository.Query("{ '$or': [ { 'sender': ?0 }, { 'receiver': ?0 } ] }")
-    List<ConnectionRequest> findAllForUser(String userId);
+    default List<ConnectionRequest> findAcceptedForUser(String userId, RequestStatus status) {
+        User user = new User();
+        user.setId(userId);
+        return findBySenderAndStatusOrReceiverAndStatus(user, status, user, status);
+    }
+
+    default List<ConnectionRequest> findAllForUser(String userId) {
+        User user = new User();
+        user.setId(userId);
+        return findBySenderOrReceiver(user, user);
+    }
 
     Optional<ConnectionRequest> findBySenderAndReceiver(User sender, User receiver);
     boolean existsBySenderAndReceiver(User sender, User receiver);

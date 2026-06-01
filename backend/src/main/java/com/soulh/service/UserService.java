@@ -66,7 +66,7 @@ public class UserService {
     }
 
     public List<User> discoverPeers(User user) {
-        if (user.getIllnessCondition() == null) return List.of();
+        if (user.getIllnessCondition() == null || user.getIllnessCondition().isBlank()) return List.of();
         return userRepository.findByRoleAndIllnessConditionAndIdNotAndIsPublicProfileTrue(
             Role.USER, 
             user.getIllnessCondition(), 

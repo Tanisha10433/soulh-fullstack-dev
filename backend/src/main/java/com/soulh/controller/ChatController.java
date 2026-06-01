@@ -34,7 +34,7 @@ public class ChatController {
             log.warn("Unauthorized WS message attempt");
             return;
         }
-        User sender = userService.getByEmail(principal.getName());
+        User sender = userService.getById(principal.getName());
         User receiver = userService.getById(request.getReceiverId());
         log.info("WS msg: {} → {}", sender.getName(), receiver.getName());
         messageService.sendMessage(sender, receiver, request.getContent(),
@@ -49,7 +49,7 @@ public class ChatController {
     @MessageMapping("/chat.typing")
     public void sendTyping(@Payload Map<String, Object> payload, Principal principal) {
         if (principal == null) return;
-        User sender = userService.getByEmail(principal.getName());
+        User sender = userService.getById(principal.getName());
         Object receiverIdObj = payload.get("receiverId");
         if (receiverIdObj == null) return;
         String receiverId = receiverIdObj.toString();
@@ -64,7 +64,7 @@ public class ChatController {
     @MessageMapping("/chat.react")
     public void reactToMessage(@Payload Map<String, String> payload, Principal principal) {
         if (principal == null) return;
-        User user = userService.getByEmail(principal.getName());
+        User user = userService.getById(principal.getName());
         String messageId = payload.get("messageId");
         String emoji = payload.get("emoji");
         if (messageId != null && emoji != null) {

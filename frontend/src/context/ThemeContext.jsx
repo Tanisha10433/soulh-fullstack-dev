@@ -11,9 +11,11 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.classList.add('dark');
       localStorage.setItem('soulh_theme', 'dark');
     } else {
       document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.classList.remove('dark');
       localStorage.setItem('soulh_theme', 'light');
     }
   }, [isDarkMode]);

@@ -15,10 +15,13 @@ public class ConnectionService {
 
     private final ConnectionRequestRepository connectionRepo;
     private final NotificationService notificationService;
+    private final com.soulh.repository.ConsultationRepository consultationRepo;
 
     public ConnectionRequest sendRequest(User sender, User receiver) {
         if (sender.getId().equals(receiver.getId()))
             throw new RuntimeException("Cannot connect with yourself.");
+        if (!com.soulh.model.Role.USER.equals(sender.getRole()) || !com.soulh.model.Role.USER.equals(receiver.getRole()))
+            throw new RuntimeException("Peer connections are limited to normal users (members) only.");
         if (connectionRepo.existsBySenderAndReceiver(sender, receiver))
             throw new RuntimeException("Request already sent.");
 
@@ -48,9 +51,26 @@ public class ConnectionService {
     }
 
     public boolean areConnected(User user1, User user2) {
-        return connectionRepo.findAcceptedForUser(user1.getId(), RequestStatus.ACCEPTED).stream()
-                .anyMatch(r -> r.getSender().getId().equals(user2.getId()) ||
-                               r.getReceiver().getId().equals(user2.getId()));
+        // If both are normal users, check peer connection request status
+        if (com.soulh.model.Role.USER.equals(user1.getRole()) && com.soulh.model.Role.USER.equals(user2.getRole())) {
+            return connectionRepo.findAcceptedForUser(user1.getId(), RequestStatus.ACCEPTED).stream()
+                    .anyMatch(r -> r.getSender().getId().equals(user2.getId()) ||
+                                   r.getReceiver().getId().equals(user2.getId()));
+        }
+        
+        // If one is doctor, they can only chat if they have a confirmed consultation
+        return hasActiveConsultation(user1.getId(), user2.getId());
+    }
+
+    private boolean hasActiveConsultation(String userId1, String userId2) {
+        try {
+            return consultationRepo.findAll().stream()
+                    .anyMatch(c -> "CONFIRMED".equals(c.getStatus()) &&
+                                   ((userId1.equals(c.getPatientId()) && userId2.equals(c.getDoctorId())) ||
+                                    (userId2.equals(c.getPatientId()) && userId1.equals(c.getDoctorId()))));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public ConnectionRequest respond(String requestId, User me, String action) {

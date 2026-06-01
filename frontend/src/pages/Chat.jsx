@@ -61,6 +61,8 @@ export default function Chat() {
   const inputRef = useRef(null);
   const bottomRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   // Instant peer info from session storage (saved by Dashboard)
   const cachedPeer = useMemo(() => {
@@ -213,7 +215,7 @@ export default function Chat() {
   useEffect(() => {
     if (!stompClient || !isConnected || !myId || !effectiveUserId) return;
 
-    const sub = stompClient.subscribe(`/user/${myId}/queue/messages`, (payload) => {
+    const sub = stompClient.subscribe(`/user/queue/messages`, (payload) => {
       const newMsg = JSON.parse(payload.body);
       // Debug — remove after verifying
       console.debug('[Chat WS] Incoming message:', JSON.stringify(newMsg, null, 2));
@@ -245,17 +247,17 @@ export default function Chat() {
       }
     });
 
-    const subTyping = stompClient.subscribe(`/user/${myId}/queue/typing`, (payload) => {
+    const subTyping = stompClient.subscribe(`/user/queue/typing`, (payload) => {
       const data = JSON.parse(payload.body);
       if (data.senderId === effectiveUserId) setPeerTyping(data.typing);
     });
 
-    const subReactions = stompClient.subscribe(`/user/${myId}/queue/reactions`, (payload) => {
+    const subReactions = stompClient.subscribe(`/user/queue/reactions`, (payload) => {
       const update = JSON.parse(payload.body);
       setMessages(prev => prev.map(m => m.id === update.messageId ? { ...m, reactions: update.reactions } : m));
     });
 
-    const subStatus = stompClient.subscribe(`/user/${myId}/queue/read-receipts`, (payload) => {
+    const subStatus = stompClient.subscribe(`/user/queue/read-receipts`, (payload) => {
       const data = JSON.parse(payload.body);
       if (data.byUserId === effectiveUserId) {
         setMessages(prev => prev.map(m => {
@@ -283,6 +285,28 @@ export default function Chat() {
 
   // ─── ACTIONS ───────────────────────────────────────────────────────────────
   const scrollToBottom = () => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
+  const sendMessage = (e, contentOverride = null) => {
+    if (e) e.preventDefault();
+    const content = contentOverride || text;
+    if (!content.trim() || !isConnected || !stompClient) return;
+
+    stompClient.publish({
+      destination: '/app/chat.sendMessage',
+      body: JSON.stringify({
+        receiverId: effectiveUserId,
+        content: content.trim(),
+        mood: selectedMood,
+        isAnonymous: sendingAnonymous
+      })
+    });
+
+    setText('');
+    setSelectedMood(null);
+    setShowMoods(false);
+    setShowStickers(false);
+    scrollToBottom();
+  };
 
   const handleTyping = () => {
     if (!stompClient?.connected) return;
@@ -328,28 +352,6 @@ export default function Chat() {
     }
   };
 
-  const sendMessage = (e, contentOverride = null) => {
-    if (e) e.preventDefault();
-    const content = contentOverride || text;
-    if (!content.trim() || !stompClient?.connected) return;
-
-    stompClient.publish({
-      destination: '/app/chat.sendMessage',
-      body: JSON.stringify({
-        receiverId: effectiveUserId,
-        content: content.trim(),
-        mood: selectedMood,
-        isAnonymous: sendingAnonymous
-      })
-    });
-
-    setText('');
-    setSelectedMood(null);
-    setShowMoods(false);
-    setShowStickers(false);
-    scrollToBottom();
-  };
-
   const reactToMessage = (messageId, emoji) => {
     if (!stompClient?.connected) return;
     stompClient.publish({
@@ -385,53 +387,53 @@ export default function Chat() {
 
   // ─── RENDER ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-screen bg-[#F0F2F5] relative overflow-hidden">
+    <div className={`flex flex-col h-screen relative overflow-hidden ${isDarkMode ? 'bg-[#0f1715] text-slate-100' : 'bg-[#F0F2F5] text-gray-800'}`}>
       
       {/* ── HEADER (WHATSAPP STYLE) ── */}
-      <div className="flex items-center gap-3 px-4 py-2 bg-[#ffffff] shadow-sm z-20 flex-shrink-0 border-b border-gray-100">
-        <button onClick={() => navigate('/dashboard')} className="text-[#0d6b5e] p-2 hover:bg-gray-100 rounded-full transition lg:hidden">
+      <div className={`flex items-center gap-3 px-4 py-2 shadow-sm z-20 flex-shrink-0 border-b ${isDarkMode ? 'bg-[#14221f] border-gray-800' : 'bg-[#ffffff] border-gray-100'}`}>
+        <button onClick={() => navigate('/dashboard')} className={`p-2 rounded-full transition lg:hidden ${isDarkMode ? 'text-teal-400 hover:bg-[#253f3a]' : 'text-[#0d6b5e] hover:bg-gray-100'}`}>
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
         </button>
 
         <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white relative shrink-0 shadow-sm"
           style={{ background: 'linear-gradient(135deg, #0d6b5e, #0f8b7a)' }}>
           {displayPeerName?.[0]?.toUpperCase() || '?'}
-          <span className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${peerTyping ? 'bg-[#0d6b5e]' : 'bg-green-500'}`} />
+          <span className={`absolute bottom-0 right-0 w-3 h-3 border-2 rounded-full ${peerTyping ? 'bg-[#0d6b5e]' : 'bg-green-500'} ${isDarkMode ? 'border-[#14221f]' : 'border-white'}`} />
         </div>
 
         <div className="flex-1 min-w-0">
-          <h2 className="font-bold text-[15px] text-gray-900 truncate flex items-center gap-1">
+          <h2 className={`font-bold text-[15px] truncate flex items-center gap-1 ${isDarkMode ? 'text-slate-100' : 'text-gray-900'}`}>
             {isPeerNameLoading ? (
               <span className="inline-block w-28 h-4 bg-gray-200 rounded-full animate-pulse" />
             ) : (
               <>
                 {displayPeerName}
                 {isPeerVerified && (
-                  <span className="text-[#0d6b5e] text-[10px] bg-[#e2f1ef] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">Verified</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter ${isDarkMode ? 'text-teal-400 bg-[#253f3a]' : 'text-[#0d6b5e] bg-[#e2f1ef]'}`}>Verified</span>
                 )}
               </>
             )}
           </h2>
-          <p className="text-[11px] font-medium leading-none" style={{ color: peerTyping ? '#0d6b5e' : '#6b7280' }}>
+          <p className="text-[11px] font-medium leading-none" style={{ color: peerTyping ? (isDarkMode ? '#2dd4bf' : '#0d6b5e') : (isDarkMode ? '#8aada5' : '#6b7280') }}>
             {peerTyping ? 'typing...' : 'Active Now'}
           </p>
         </div>
 
         <div className="flex items-center gap-1 relative">
-           <button onClick={() => setIsSearching(!isSearching)} className="p-2 text-gray-400 hover:text-[#0d6b5e] rounded-full hover:bg-gray-50 transition">
+           <button onClick={() => setIsSearching(!isSearching)} className={`p-2 rounded-full transition ${isDarkMode ? 'text-teal-400 hover:text-teal-300 hover:bg-[#253f3a]' : 'text-gray-400 hover:text-[#0d6b5e] hover:bg-gray-50'}`}>
              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
            </button>
-           <button onClick={() => setShowOptions(!showOptions)} className="p-2 text-gray-400 hover:text-[#0d6b5e] rounded-full hover:bg-gray-50 transition">
+           <button onClick={() => setShowOptions(!showOptions)} className={`p-2 rounded-full transition ${isDarkMode ? 'text-teal-400 hover:text-teal-305 hover:bg-[#253f3a]' : 'text-gray-400 hover:text-[#0d6b5e] hover:bg-gray-50'}`}>
              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
            </button>
 
            {showOptions && (
-             <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-pop-in">
-               <button onClick={handleBlock} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+             <div className={`absolute right-0 top-12 w-48 rounded-2xl shadow-2xl border py-2 z-50 animate-pop-in ${isDarkMode ? 'bg-[#1a2d29] border-gray-800' : 'bg-white border-gray-100'}`}>
+               <button onClick={handleBlock} className={`w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 ${isDarkMode ? 'text-slate-200 hover:bg-[#253f3a]' : 'text-gray-700 hover:bg-gray-50'}`}>
                  <span className="text-lg">{isBlockedByMe ? '🔓' : '🚫'}</span>
                  {isBlockedByMe ? 'Unblock User' : 'Block User'}
                </button>
-               <button onClick={() => { setShowReportModal(true); setShowOptions(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-3">
+               <button onClick={() => { setShowReportModal(true); setShowOptions(false); }} className={`w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 ${isDarkMode ? 'text-red-400 hover:bg-red-500/10' : 'text-red-650 hover:bg-red-50'}`}>
                  <span className="text-lg">🚩</span>
                  Report User
                </button>
@@ -441,15 +443,16 @@ export default function Chat() {
       </div>
 
       {/* ── MESSAGES AREA (DOODLE BACKGROUND) ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 z-10 relative" style={{ 
-        backgroundColor: '#E5DDD5',
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 z-10 relative" style={{ 
+        backgroundColor: isDarkMode ? '#0f1715' : '#E5DDD5',
         backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
-        backgroundBlendMode: 'overlay'
+        backgroundBlendMode: isDarkMode ? 'multiply' : 'overlay',
+        opacity: isDarkMode ? 0.95 : 1
       }}>
         <div className="max-w-3xl mx-auto flex flex-col justify-end min-h-full">
           
           <div className="flex justify-center mb-4">
-             <div className="bg-[#E1F3FB] text-[#128C7E] text-[11px] font-bold px-4 py-1.5 rounded-lg shadow-sm text-center">
+             <div className={`text-[11px] font-bold px-4 py-1.5 rounded-lg shadow-sm text-center ${isDarkMode ? 'bg-[#1a2d29] text-teal-400' : 'bg-[#E1F3FB] text-[#128C7E]'}`}>
                 🔒 Messages are end-to-end encrypted
              </div>
           </div>
@@ -457,7 +460,7 @@ export default function Chat() {
           {Object.entries(grouped).map(([dk, group]) => (
             <React.Fragment key={dk}>
               <div className="flex justify-center my-3">
-                <span className="bg-[#ffffff] text-gray-500 text-[11px] font-bold px-3 py-1 rounded-lg shadow-sm uppercase tracking-wider">
+                <span className={`text-[11px] font-bold px-3 py-1 rounded-lg shadow-sm uppercase tracking-wider ${isDarkMode ? 'bg-[#1a2d29] text-slate-400' : 'bg-[#ffffff] text-gray-500'}`}>
                   {group.label}
                 </span>
               </div>
@@ -471,7 +474,7 @@ export default function Chat() {
                     <div className="relative group max-w-[85%] sm:max-w-[70%]">
                       
                       {/* Hover Reactions */}
-                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 hidden group-hover:flex bg-white shadow-xl rounded-full px-2 py-1 gap-1 border border-gray-100 z-30 animate-pop-in">
+                      <div className={`absolute -top-10 left-1/2 -translate-x-1/2 hidden group-hover:flex shadow-xl rounded-full px-2 py-1 gap-1 border z-30 animate-pop-in ${isDarkMode ? 'bg-[#1a2d29] border-gray-800' : 'bg-white border-gray-100'}`}>
                         {REACTIONS.map(emoji => (
                           <button key={emoji} onClick={() => reactToMessage(msg.id, emoji)} className="hover:scale-150 transition transform px-1 text-lg">
                             {emoji}
@@ -481,11 +484,16 @@ export default function Chat() {
 
                       <div className="px-3 py-1.5 relative shadow-sm transition-all"
                         style={{
-                          backgroundColor: mine ? '#DCF8C6' : '#FFFFFF',
+                          backgroundColor: mine ? (isDarkMode ? '#0b5247' : '#DCF8C6') : (isDarkMode ? '#1a2d29' : '#FFFFFF'),
                           borderRadius: mine ? '12px 0px 12px 12px' : '0px 12px 12px 12px',
-                          border: '1px solid rgba(0,0,0,0.02)'
+                          border: isDarkMode ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.02)'
                         }}>
                         
+                        {/* Chat Sender Name Display */}
+                        <div className={`text-[10px] font-bold mb-0.5 ${mine ? (isDarkMode ? 'text-teal-350' : 'text-[#0a7265]') : (isDarkMode ? 'text-teal-400' : 'text-[#0d6b5e]')}`}>
+                          {mine ? 'You' : (msg.isAnonymous ? 'Anonymous Peer' : (msg.senderName || msg.sender?.name || 'Peer'))}
+                        </div>
+
                         {msg.mood && (
                           <div className="mb-1 flex items-center gap-1.5 p-1 bg-black/5 rounded-md w-fit">
                             <span className="text-sm">{msg.mood}</span>
@@ -502,24 +510,24 @@ export default function Chat() {
                           </div>
                         )}
 
-                        <div className="text-[14px] text-gray-800 leading-normal whitespace-pre-wrap word-break-words pr-12">
+                        <div className={`text-[14px] leading-normal whitespace-pre-wrap word-break-words pr-12 ${isDarkMode ? 'text-slate-200' : 'text-gray-800'}`}>
                           {msg.content}
                         </div>
 
                         {/* Reactions Badge */}
                         {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1 bg-white/80 rounded-full px-1.5 py-0.5 w-fit border border-black/5 shadow-sm">
+                          <div className={`flex flex-wrap gap-1 mt-1 rounded-full px-1.5 py-0.5 w-fit border shadow-sm ${isDarkMode ? 'bg-[#14221f]/80 border-white/5' : 'bg-white/80 border-black/5'}`}>
                             {Object.entries(msg.reactions).map(([emoji, users]) => (
                               <span key={emoji} className="text-[11px] flex items-center gap-0.5">
                                 <span>{emoji}</span>
-                                <span className="font-bold text-[9px] opacity-60">{users.length}</span>
+                                <span className={`font-bold text-[9px] ${isDarkMode ? 'text-slate-400' : 'opacity-60'}`}>{users.length}</span>
                               </span>
                             ))}
                           </div>
                         )}
                         
                         <div className="absolute bottom-1 right-2 flex items-center gap-1">
-                          <span className="text-[9px] text-gray-400 font-bold">{formatTime(msg.sentAt)}</span>
+                          <span className={`text-[9px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-gray-400'}`}>{formatTime(msg.sentAt)}</span>
                           {mine && (
                             <span className="text-[12px] font-bold leading-none" style={{ color: read ? '#34B7F1' : '#9CA3AF' }}>
                               {read ? '✓✓' : delivered ? '✓✓' : '✓'}
@@ -535,7 +543,7 @@ export default function Chat() {
           ))}
           {peerTyping && (
             <div className="flex justify-start mb-2">
-               <div className="bg-white px-3 py-1.5 rounded-full shadow-sm text-[#0d6b5e] text-[11px] font-black italic flex items-center gap-2">
+               <div className={`px-3 py-1.5 rounded-full shadow-sm text-[11px] font-black italic flex items-center gap-2 ${isDarkMode ? 'bg-[#1a2d29] text-teal-400' : 'bg-white text-[#0d6b5e]'}`}>
                  <span>typing</span>
                  <div className="flex gap-0.5">
                    <div className="w-1 h-1 bg-[#0d6b5e] rounded-full animate-bounce" />
@@ -549,19 +557,51 @@ export default function Chat() {
         </div>
       </div>
 
+      {/* Floating Scroll to Top / Bottom Buttons */}
+      <div className="absolute bottom-24 right-4 z-40 flex flex-col gap-2 pointer-events-auto">
+        <button
+          type="button"
+          onClick={() => {
+            messagesContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all border ${
+            isDarkMode 
+              ? 'bg-[#1a2d29] text-teal-400 border-teal-500/20 hover:bg-[#253f3a]' 
+              : 'bg-white text-[#0d6b5e] border-[#0d6b5e]/20 hover:bg-gray-50'
+          }`}
+          title="Scroll to Top"
+        >
+          ▲
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all border ${
+            isDarkMode 
+              ? 'bg-[#1a2d29] text-teal-400 border-teal-500/20 hover:bg-[#253f3a]' 
+              : 'bg-white text-[#0d6b5e] border-[#0d6b5e]/20 hover:bg-gray-50'
+          }`}
+          title="Scroll to Bottom"
+        >
+          ▼
+        </button>
+      </div>
+
       {/* ── FLOATING MENUS ── */}
       <div className="absolute bottom-20 left-0 w-full z-20 px-4 max-w-3xl mx-auto right-0 flex flex-col gap-2 pointer-events-none">
         
         {/* Stickers Menu */}
         {showStickers && (
-          <div className="bg-white p-4 rounded-3xl shadow-2xl border border-gray-100 pointer-events-auto self-center animate-pop-in w-full max-w-sm">
+          <div className={`p-4 rounded-3xl shadow-2xl border pointer-events-auto self-center animate-pop-in w-full max-w-sm ${isDarkMode ? 'bg-[#1a2d29] border-gray-800' : 'bg-white border-gray-100'}`}>
             <h3 className="text-[10px] font-black text-gray-400 mb-3 uppercase tracking-widest text-center">Supportive Stickers 💙</h3>
             <div className="grid grid-cols-2 gap-3">
               {SUPPORT_STICKERS.map(s => (
                 <button key={s.text} onClick={() => sendMessage(null, s.text)}
-                  className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-[#f0f9f8] hover:bg-[#e2f1ef] transition border border-[#0d6b5e]/10 group">
+                  className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition border group ${isDarkMode ? 'bg-[#14221f] hover:bg-[#253f3a] border-teal-500/10' : 'bg-[#f0f9f8] hover:bg-[#e2f1ef] border-[#0d6b5e]/10'}`}>
                   <span className="text-3xl group-hover:scale-125 transition">{s.emoji}</span>
-                  <span className="text-[11px] font-bold text-[#0d6b5e] text-center">{s.text}</span>
+                  <span className={`text-[11px] font-bold text-center ${isDarkMode ? 'text-teal-400' : 'text-[#0d6b5e]'}`}>{s.text}</span>
                 </button>
               ))}
             </div>
@@ -572,7 +612,7 @@ export default function Chat() {
         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar pointer-events-auto">
           {QUICK_REPLIES.map(q => (
             <button key={q} onClick={() => sendMessage(null, q)}
-              className="bg-white/90 backdrop-blur-md text-[#0d6b5e] px-4 py-1.5 rounded-full text-[12px] font-bold shadow-md border border-[#0d6b5e]/20 whitespace-nowrap hover:bg-white transition">
+              className={`px-4 py-1.5 rounded-full text-[12px] font-bold shadow-md border whitespace-nowrap transition ${isDarkMode ? 'bg-[#1a2d29]/90 text-teal-400 border-teal-500/20 hover:bg-[#1a2d29]' : 'bg-white/90 text-[#0d6b5e] border-[#0d6b5e]/20 hover:bg-white'}`}>
               {q}
             </button>
           ))}
@@ -580,19 +620,19 @@ export default function Chat() {
       </div>
 
       {/* ── COMPACT INPUT BAR ── */}
-      <div className="bg-[#F0F2F5] px-4 py-2 z-30 flex-shrink-0 border-t border-gray-200">
+      <div className={`px-4 py-2 z-30 flex-shrink-0 border-t ${isDarkMode ? 'bg-[#0f1715] border-gray-800' : 'bg-[#F0F2F5] border-gray-200'}`}>
         <form onSubmit={sendMessage} className="max-w-3xl mx-auto flex items-center gap-2">
           
           {isBlockedByMe ? (
-            <div className="flex-1 bg-gray-100 rounded-full px-6 py-3 text-center text-gray-500 text-sm font-bold border border-gray-200">
+            <div className={`flex-1 rounded-full px-6 py-3 text-center text-sm font-bold border ${isDarkMode ? 'bg-[#1a2d29] text-slate-400 border-gray-800' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
                You have blocked this user. <button onClick={handleBlock} className="text-[#0d6b5e] underline ml-1">Unblock</button>
             </div>
           ) : isBlockingMe ? (
-            <div className="flex-1 bg-gray-100 rounded-full px-6 py-3 text-center text-gray-500 text-sm font-bold border border-gray-200">
+            <div className={`flex-1 rounded-full px-6 py-3 text-center text-sm font-bold border ${isDarkMode ? 'bg-[#1a2d29] text-slate-400 border-gray-800' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
                You can no longer send messages to this user.
             </div>
           ) : isRecording ? (
-            <div className="flex-1 bg-white rounded-full flex items-center px-4 py-2 shadow-sm border border-red-200">
+            <div className={`flex-1 rounded-full flex items-center px-4 py-2 shadow-sm border ${isDarkMode ? 'bg-[#14221f] border-red-905/50' : 'bg-white border-red-200'}`}>
                <div className="w-2 h-2 bg-red-500 rounded-full mr-3 animate-pulse" />
                <span className="text-red-500 font-bold text-sm flex-1 tracking-tight">
                  Recording... {formatRecordingTime(recordingTime)}
@@ -607,8 +647,8 @@ export default function Chat() {
                </div>
             </div>
           ) : (
-            <div className="flex-1 bg-white rounded-full flex items-center px-1 shadow-sm border border-gray-200">
-              <button type="button" onClick={() => { setShowEmoji(!showEmoji); setShowStickers(false); }} className="p-2.5 text-gray-500 hover:text-[#0d6b5e]">
+            <div className={`flex-1 rounded-full flex items-center px-1 shadow-sm border ${isDarkMode ? 'bg-[#14221f] border-gray-800' : 'bg-white border-gray-200'}`}>
+              <button type="button" onClick={() => { setShowEmoji(!showEmoji); setShowStickers(false); }} className={`p-2.5 transition ${isDarkMode ? 'text-teal-400 hover:text-teal-300' : 'text-gray-500 hover:text-[#0d6b5e]'}`}>
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </button>
 
@@ -619,20 +659,20 @@ export default function Chat() {
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 onChange={e => { setText(e.target.value); handleTyping(); }}
                 placeholder="Type a message..."
-                className="flex-1 bg-transparent py-2.5 px-1 text-sm focus:outline-none max-h-32 resize-none"
+                className={`flex-1 bg-transparent py-2.5 px-1 text-sm focus:outline-none max-h-32 resize-none ${isDarkMode ? 'text-slate-100' : 'text-gray-800'}`}
               />
 
                 <button type="button" onClick={() => setSendingAnonymous(!sendingAnonymous)}
-                  className={`p-2 rounded-full transition ${sendingAnonymous ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-[#0d6b5e]'}`}
+                  className={`p-2 rounded-full transition ${sendingAnonymous ? 'text-red-500 bg-red-50' : (isDarkMode ? 'text-teal-400 hover:text-teal-300' : 'text-gray-400 hover:text-[#0d6b5e]')}`}
                   title={sendingAnonymous ? "Sending Anonymously" : "Send as Me"}>
                   🎭
                 </button>
 
-              <button type="button" onClick={() => setShowStickers(!showStickers)} className={`p-2.5 transition ${showStickers ? 'text-[#0d6b5e]' : 'text-gray-400 hover:text-[#0d6b5e]'}`}>
+              <button type="button" onClick={() => setShowStickers(!showStickers)} className={`p-2.5 transition ${showStickers ? (isDarkMode ? 'text-teal-300' : 'text-[#0d6b5e]') : (isDarkMode ? 'text-teal-400 hover:text-[#0d6b5e]' : 'text-gray-400 hover:text-[#0d6b5e]')}`}>
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
               </button>
               
-              <button type="button" onClick={startRecording} className="p-2.5 text-gray-400 hover:text-[#0d6b5e] transition">
+              <button type="button" onClick={startRecording} className={`p-2.5 transition ${isDarkMode ? 'text-teal-400 hover:text-teal-300' : 'text-gray-400 hover:text-[#0d6b5e]'}`}>
                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
               </button>
             </div>
@@ -640,7 +680,7 @@ export default function Chat() {
 
           {!isBlockedByMe && !isBlockingMe && (
             <button type="submit" disabled={!text.trim()}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md ${text.trim() ? 'bg-[#0d6b5e] scale-100' : 'bg-gray-400 scale-90'}`}>
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md ${text.trim() ? 'bg-[#0d6b5e] scale-100' : (isDarkMode ? 'bg-[#1a2d29] scale-90' : 'bg-gray-400 scale-90')}`}>
               <svg className="w-5 h-5 text-white transform rotate-90 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
             </button>
           )}
@@ -650,17 +690,17 @@ export default function Chat() {
       {/* Report Modal */}
       {showReportModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl animate-pop-in">
-            <h3 className="text-2xl font-black text-gray-900 mb-2">Report User</h3>
-            <p className="text-sm text-gray-500 mb-8 font-medium">Help us keep SoulH safe. Tell us what's wrong with this conversation.</p>
+          <div className={`w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl animate-pop-in ${isDarkMode ? 'bg-[#1a2d29] text-slate-100' : 'bg-white'}`}>
+            <h3 className="text-2xl font-black mb-2">Report User</h3>
+            <p className={`text-sm mb-8 font-medium ${isDarkMode ? 'text-slate-400' : 'text-gray-500'}`}>Help us keep SoulH safe. Tell us what's wrong with this conversation.</p>
             
             <div className="space-y-6">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 block">Reason</label>
+                <label className={`text-[10px] font-black uppercase tracking-widest mb-3 block ${isDarkMode ? 'text-slate-400' : 'text-gray-400'}`}>Reason</label>
                 <div className="grid grid-cols-2 gap-2">
                   {['HARASSMENT', 'SPAM', 'INAPPROPRIATE', 'SCAM', 'OTHER'].map(r => (
                     <button key={r} onClick={() => setReportReason(r)}
-                      className={`py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider transition ${reportReason === r ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}>
+                      className={`py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider transition ${reportReason === r ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : (isDarkMode ? 'bg-[#14221f] text-slate-400 hover:bg-[#253f3a]' : 'bg-gray-50 text-gray-400 hover:bg-gray-100')}`}>
                       {r}
                     </button>
                   ))}
@@ -668,18 +708,18 @@ export default function Chat() {
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 block">Additional Context</label>
+                <label className={`text-[10px] font-black uppercase tracking-widest mb-3 block ${isDarkMode ? 'text-slate-400' : 'text-gray-400'}`}>Additional Context</label>
                 <textarea 
                   value={reportDesc} 
                   onChange={e => setReportDesc(e.target.value)}
                   placeholder="Tell us more..."
-                  className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-red-500/20 min-h-[100px] resize-none"
+                  className={`w-full border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-red-500/20 min-h-[100px] resize-none ${isDarkMode ? 'bg-[#14221f] text-slate-200' : 'bg-gray-50'}`}
                 />
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowReportModal(false)} className="flex-1 py-4 rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition">Cancel</button>
-                <button onClick={submitReport} className="flex-1 py-4 rounded-2xl bg-red-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-red-600/20 hover:scale-105 transition active:scale-95">Submit Report</button>
+                <button onClick={() => setShowReportModal(false)} className={`flex-1 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition ${isDarkMode ? 'bg-[#14221f] text-slate-400 hover:bg-[#253f3a]' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Cancel</button>
+                <button onClick={submitReport} className="flex-1 py-4 rounded-2xl bg-red-650 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-red-650/20 hover:scale-105 transition active:scale-95">Submit Report</button>
               </div>
             </div>
           </div>
@@ -688,7 +728,7 @@ export default function Chat() {
 
       {/* Emoji Picker (Hidden behind input) */}
       {showEmoji && (
-        <div className="absolute bottom-[68px] left-4 bg-white p-3 rounded-2xl shadow-2xl border border-gray-100 z-50 animate-pop-in">
+        <div className={`absolute bottom-[68px] left-4 p-3 rounded-2xl shadow-2xl border z-50 animate-pop-in ${isDarkMode ? 'bg-[#1a2d29] border-gray-800' : 'bg-white border-gray-100'}`}>
            <div className="grid grid-cols-6 gap-2">
               {HEALTH_EMOJIS.map(e => (
                 <button key={e} onClick={() => { setText(p => p+e); setShowEmoji(false); inputRef.current?.focus(); }}

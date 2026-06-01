@@ -63,6 +63,7 @@ export function AuthProvider({ children }) {
   const loginWithGoogle = async (idToken) => {
     const { data } = await api.post('/api/auth/oauth2/google', { idToken });
     localStorage.setItem('soulh_token', data.token);
+    if (data.refreshToken) localStorage.setItem('soulh_refresh_token', data.refreshToken);
 
     // Fetch full profile so id and all fields are present
     let userObj = data;

@@ -31,6 +31,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+    private final com.soulh.repository.UserRepository userRepository;
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
@@ -66,9 +67,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             String username = jwtUtil.extractEmail(token);
                             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                             if (jwtUtil.isTokenValid(token, userDetails)) {
+                                com.soulh.model.User user = userRepository.findByEmail(username)
+                                        .orElseThrow(() -> new RuntimeException("User not found"));
                                 UsernamePasswordAuthenticationToken auth =
                                     new UsernamePasswordAuthenticationToken(
-                                        userDetails, null, userDetails.getAuthorities());
+                                        user.getId(), null, userDetails.getAuthorities());
                                 accessor.setUser(auth);
                             }
                         } catch (Exception e) {

@@ -60,6 +60,31 @@ export default function Signup() {
     }
   };
 
+  const handleSkip = async (e) => {
+    if (e) e.preventDefault();
+    const condition = form.role === 'DOCTOR' ? 'General Support' : '';
+    setLoading(true);
+    try {
+      const payload = {
+         ...form,
+         illnessCondition: condition,
+         ...(form.role === 'DOCTOR' ? {
+           registrationNumber: docFields.registrationNumber || 'PENDING',
+           experience: docFields.experience ? parseInt(docFields.experience, 10) : 1,
+           qualification: docFields.qualification || 'Not Specified',
+           hospital: docFields.hospital || 'Not Specified'
+         } : {})
+      };
+      const data = await register(payload);
+      addToast(`Welcome to SoulH, ${data.name.split(' ')[0]}! 💙`, 'success');
+      navigate('/dashboard');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Could not create account.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const pwLen = form.password.length;
   const strengthPct = Math.min(100, (pwLen / 12) * 100);
   const strengthColor = pwLen >= 10 ? '#059669' : pwLen >= 7 ? '#d97706' : pwLen >= 4 ? '#f59e0b' : '#e5e7eb';
@@ -278,7 +303,7 @@ export default function Signup() {
                       : '🌱 Join SoulH Free →'
                     }
                   </button>
-                  <button type="button" onClick={handleSubmit} className="btn-ghost w-full py-3 text-sm" disabled={loading}>
+                  <button type="button" onClick={handleSkip} className="btn-ghost w-full py-3 text-sm" disabled={loading}>
                     {form.role === 'DOCTOR' ? 'Skip specialty & finalize signup' : 'Skip & join without condition'}
                   </button>
                 </form>

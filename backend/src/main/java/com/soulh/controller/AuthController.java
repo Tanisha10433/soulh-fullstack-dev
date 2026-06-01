@@ -97,7 +97,7 @@ public class AuthController {
                 }
 
                 GoogleIdToken.Payload payload = idTokenObj.getPayload();
-                String email = payload.getEmail();
+                String email = payload.getEmail() != null ? payload.getEmail().trim().toLowerCase() : "";
                 String name = (String) payload.get("name");
                 if (name == null) name = email.split("@")[0];
                 String sub = payload.getSubject();
@@ -105,7 +105,10 @@ public class AuthController {
                 User user = userService.findOrCreateFromOAuth(email, name, "google", sub);
                 String jwt = jwtUtil.generateToken(userDetailsService.loadUserByUsername(user.getEmail()));
 
-                return ResponseEntity.ok(new AuthResponse(jwt, null, user.getId(), user.getName(), user.getEmail(), user.getRole()));
+                refreshTokenService.deleteByUserId(user.getId());
+                String refreshToken = refreshTokenService.createRefreshToken(user.getId()).getToken();
+
+                return ResponseEntity.ok(new AuthResponse(jwt, refreshToken, user.getId(), user.getName(), user.getEmail(), user.getRole()));
             } else {
                 // Fallback for development if client ID is not configured
                 String[] parts = idToken.split("\\.");
@@ -115,14 +118,17 @@ public class AuthController {
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                 Map<?, ?> claims = mapper.readValue(payloadJson, Map.class);
 
-                String email = (String) claims.get("email");
+                String email = claims.get("email") != null ? ((String) claims.get("email")).trim().toLowerCase() : "";
                 String name  = claims.containsKey("name") ? (String) claims.get("name") : email.split("@")[0];
                 String sub   = (String) claims.get("sub");
 
                 User user = userService.findOrCreateFromOAuth(email, name, "google", sub);
                 String jwt = jwtUtil.generateToken(userDetailsService.loadUserByUsername(user.getEmail()));
 
-                return ResponseEntity.ok(new AuthResponse(jwt, null, user.getId(), user.getName(), user.getEmail(), user.getRole()));
+                refreshTokenService.deleteByUserId(user.getId());
+                String refreshToken = refreshTokenService.createRefreshToken(user.getId()).getToken();
+
+                return ResponseEntity.ok(new AuthResponse(jwt, refreshToken, user.getId(), user.getName(), user.getEmail(), user.getRole()));
             }
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid Google token: " + e.getMessage()));

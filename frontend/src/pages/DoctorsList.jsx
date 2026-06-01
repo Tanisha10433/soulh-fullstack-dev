@@ -16,7 +16,7 @@ export default function DoctorsList() {
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
-    api.get('/api/doctors/verified')
+    api.get('/api/users/doctors')
       .then(r => setDoctors(r.data))
       .catch(() => setDoctors([]))
       .finally(() => setLoading(false));

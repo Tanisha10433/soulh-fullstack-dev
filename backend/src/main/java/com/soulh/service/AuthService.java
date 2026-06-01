@@ -33,13 +33,14 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        String email = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : null;
+        if (email != null && userRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Email already registered.");
         }
 
         User user = User.builder()
                 .name(request.getName())
-                .email(request.getEmail())
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword())) // BCrypt hash!
                 .role(request.getRole())
                 .illnessCondition(request.getIllnessCondition())
@@ -75,12 +76,13 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        String email = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : null;
         // This throws BadCredentialsException if email/password don't match
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(email, request.getPassword())
         );
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found."));
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
