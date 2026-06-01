@@ -16,6 +16,7 @@ public class ConnectionService {
     private final ConnectionRequestRepository connectionRepo;
     private final NotificationService notificationService;
     private final com.soulh.repository.ConsultationRepository consultationRepo;
+    private final com.soulh.repository.ConsultationRequestRepository consultationRequestRepo;
 
     public ConnectionRequest sendRequest(User sender, User receiver) {
         if (sender.getId().equals(receiver.getId()))
@@ -64,9 +65,17 @@ public class ConnectionService {
 
     private boolean hasActiveConsultation(String userId1, String userId2) {
         try {
+            // Check confirmed/completed consultations (booked via slot)
             List<String> activeStatuses = List.of("CONFIRMED", "COMPLETED");
-            return consultationRepo.existsByPatientIdAndDoctorIdAndStatusIn(userId1, userId2, activeStatuses) ||
-                   consultationRepo.existsByPatientIdAndDoctorIdAndStatusIn(userId2, userId1, activeStatuses);
+            if (consultationRepo.existsByPatientIdAndDoctorIdAndStatusIn(userId1, userId2, activeStatuses) ||
+                consultationRepo.existsByPatientIdAndDoctorIdAndStatusIn(userId2, userId1, activeStatuses)) {
+                return true;
+            }
+            // Also check consultation requests (PENDING or ACCEPTED)
+            // This lets users message doctors once they've submitted a request
+            List<String> requestStatuses = List.of("PENDING", "ACCEPTED", "CONFIRMED");
+            return consultationRequestRepo.existsByPatientIdAndDoctorIdAndStatusIn(userId1, userId2, requestStatuses) ||
+                   consultationRequestRepo.existsByPatientIdAndDoctorIdAndStatusIn(userId2, userId1, requestStatuses);
         } catch (Exception e) {
             return false;
         }

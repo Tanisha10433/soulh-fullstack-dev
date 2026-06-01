@@ -291,7 +291,7 @@ function AppRoutes() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <div className={isChat ? '' : 'pt-16 flex-1'}>
+      <div className={isChat ? 'pt-16 flex-1 flex flex-col' : 'pt-16 flex-1'}>
         <Routes>
           <Route path="/"          element={<Home />} />
           <Route path="/login"     element={!user ? <Login />    : <Navigate to="/dashboard" />} />

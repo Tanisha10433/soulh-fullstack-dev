@@ -28,6 +28,165 @@ const QUICK_REPLIES = ["I understand", "Stay strong", "Thank you", "Sending love
 
 const HEALTH_EMOJIS = ['💊', '🌡️', '🧠', '🫀', '🩹', '🧘', '🥗', '🚶', '💤', '💧', '🍎', '🍵'];
 
+// ─── CUSTOM VOICE PLAYER ──────────────────────────────────────────────────
+function VoicePlayer({ src, isMine, isDarkMode }) {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const onLoadedMetadata = () => {
+      if (audio.duration && isFinite(audio.duration) && audio.duration !== Infinity) {
+        setDuration(audio.duration);
+      } else {
+        // Chromium bug workaround: force seeking to find duration
+        audio.currentTime = 1e9;
+        const getDuration = () => {
+          audio.currentTime = 0;
+          if (audio.duration && isFinite(audio.duration)) {
+            setDuration(audio.duration);
+          }
+          audio.removeEventListener('seeked', getDuration);
+        };
+        audio.addEventListener('seeked', getDuration);
+      }
+    };
+    const onEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('ended', onEnded);
+
+    if (audio.readyState >= 1 && audio.duration && isFinite(audio.duration)) {
+      setDuration(audio.duration);
+    }
+
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, [src]);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => {
+        console.error("Audio play failed:", err);
+      });
+    }
+  };
+
+  const handleSeek = (e) => {
+    if (!audioRef.current || !duration) return;
+    const seekTime = (parseFloat(e.target.value) / 100) * duration;
+    audioRef.current.currentTime = seekTime;
+    setCurrentTime(seekTime);
+  };
+
+  const formatTime = (time) => {
+    if (isNaN(time) || !isFinite(time)) return '0:00';
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const progress = duration ? (currentTime / duration) * 100 : 0;
+
+  const playButtonBg = isMine 
+    ? 'bg-[#0d6b5e] text-white hover:bg-[#0b5e52]'
+    : (isDarkMode ? 'bg-[#253f3a] text-teal-400 hover:bg-[#2d4d47]' : 'bg-gray-100 text-[#0d6b5e] hover:bg-gray-200');
+
+  const progressColor = isMine
+    ? (isDarkMode ? '#2dd4bf' : '#0d6b5e')
+    : (isDarkMode ? '#14b8a6' : '#0d6b5e');
+
+  const textColor = isMine
+    ? (isDarkMode ? 'text-teal-100' : 'text-slate-700')
+    : (isDarkMode ? 'text-slate-300' : 'text-gray-600');
+
+  return (
+    <div className={`flex items-center gap-3 py-2 px-3 rounded-2xl w-[220px] sm:w-[260px] ${
+      isMine 
+        ? (isDarkMode ? 'bg-black/20' : 'bg-black/5') 
+        : (isDarkMode ? 'bg-black/30' : 'bg-black/5')
+    }`}>
+      <audio ref={audioRef} src={src} preload="metadata" />
+      
+      <button 
+        type="button"
+        onClick={togglePlay}
+        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all transform hover:scale-105 shrink-0 shadow-sm ${playButtonBg}`}
+      >
+        {isPlaying ? (
+          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+          </svg>
+        ) : (
+          <svg className="w-4 h-4 fill-current ml-0.5" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        )}
+      </button>
+
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        <div className="relative flex items-center w-full">
+          <input 
+            type="range"
+            min="0"
+            max="100"
+            value={progress}
+            onChange={handleSeek}
+            className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-transparent focus:outline-none"
+            style={{
+              background: `linear-gradient(to right, ${progressColor} ${progress}%, ${isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'} ${progress}%)`
+            }}
+          />
+          <style>{`
+            input[type="range"]::-webkit-slider-thumb {
+              -webkit-appearance: none;
+              appearance: none;
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              background: ${progressColor};
+              cursor: pointer;
+            }
+            input[type="range"]::-moz-range-thumb {
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              background: ${progressColor};
+              cursor: pointer;
+              border: none;
+            }
+          `}</style>
+        </div>
+        
+        <div className={`flex items-center justify-between text-[9px] font-bold uppercase tracking-wider ${textColor} opacity-80`}>
+          <span>{formatTime(currentTime)} / {formatTime(duration || audioRef.current?.duration)}</span>
+          <span className="flex items-center gap-0.5">
+            🎙️ Voice Note
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Chat() {
   const { userId } = useParams(); // Peer ID
   const { user } = useAuth();
@@ -303,7 +462,16 @@ export default function Chat() {
   }, [messages, peerTyping]);
 
   // ─── ACTIONS ───────────────────────────────────────────────────────────────
-  const scrollToBottom = () => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTo({
+          top: messagesContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
+  };
 
   const sendMessage = (e, contentOverride = null) => {
     if (e) e.preventDefault();
@@ -406,7 +574,7 @@ export default function Chat() {
 
   // ─── RENDER ────────────────────────────────────────────────────────────────
   return (
-    <div className={`flex flex-col h-screen relative overflow-hidden ${isDarkMode ? 'bg-[#0f1715] text-slate-100' : 'bg-[#F0F2F5] text-gray-800'}`}>
+    <div className={`flex flex-col h-[calc(100vh-4rem)] relative overflow-hidden ${isDarkMode ? 'bg-[#0f1715] text-slate-100' : 'bg-[#F0F2F5] text-gray-800'}`}>
       
       {/* ── HEADER (WHATSAPP STYLE) ── */}
       <div className={`flex items-center gap-3 px-4 py-2 shadow-sm z-20 flex-shrink-0 border-b ${isDarkMode ? 'bg-[#14221f] border-gray-800' : 'bg-[#ffffff] border-gray-100'}`}>
@@ -522,16 +690,19 @@ export default function Chat() {
 
                         {msg.voiceUrl && (
                           <div className="mb-2 mt-1">
-                             <audio controls className="h-8 max-w-[200px] sm:max-w-[240px]">
-                                <source src={`${api.defaults.baseURL}${msg.voiceUrl}`} type="audio/webm" />
-                                Your browser does not support audio.
-                             </audio>
+                            <VoicePlayer 
+                              src={`${api.defaults.baseURL}${msg.voiceUrl}`} 
+                              isMine={mine} 
+                              isDarkMode={isDarkMode} 
+                            />
                           </div>
                         )}
 
-                        <div className={`text-[14px] leading-normal whitespace-pre-wrap word-break-words pr-12 ${isDarkMode ? 'text-slate-200' : 'text-gray-800'}`}>
-                          {msg.content}
-                        </div>
+                        {msg.content && msg.content !== '🎤 Voice Message' && (
+                          <div className={`text-[14px] leading-normal whitespace-pre-wrap word-break-words pr-12 ${isDarkMode ? 'text-slate-200' : 'text-gray-800'}`}>
+                            {msg.content}
+                          </div>
+                        )}
 
                         {/* Reactions Badge */}
                         {msg.reactions && Object.keys(msg.reactions).length > 0 && (
@@ -595,7 +766,12 @@ export default function Chat() {
         <button
           type="button"
           onClick={() => {
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+            if (messagesContainerRef.current) {
+              messagesContainerRef.current.scrollTo({
+                top: messagesContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+              });
+            }
           }}
           className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all border ${
             isDarkMode 
@@ -612,7 +788,7 @@ export default function Chat() {
       <div className="absolute bottom-20 left-0 w-full z-20 px-4 max-w-3xl mx-auto right-0 flex flex-col gap-2 pointer-events-none">
         
         {/* Stickers Menu */}
-        {showStickers && (
+        {peer?.role !== 'DOCTOR' && showStickers && (
           <div className={`p-4 rounded-3xl shadow-2xl border pointer-events-auto self-center animate-pop-in w-full max-w-sm ${isDarkMode ? 'bg-[#1a2d29] border-gray-800' : 'bg-white border-gray-100'}`}>
             <h3 className="text-[10px] font-black text-gray-400 mb-3 uppercase tracking-widest text-center">Supportive Stickers 💙</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -628,14 +804,16 @@ export default function Chat() {
         )}
 
         {/* Quick Replies Bar */}
-        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar pointer-events-auto">
-          {QUICK_REPLIES.map(q => (
-            <button key={q} onClick={() => sendMessage(null, q)}
-              className={`px-4 py-1.5 rounded-full text-[12px] font-bold shadow-md border whitespace-nowrap transition ${isDarkMode ? 'bg-[#1a2d29]/90 text-teal-400 border-teal-500/20 hover:bg-[#1a2d29]' : 'bg-white/90 text-[#0d6b5e] border-[#0d6b5e]/20 hover:bg-white'}`}>
-              {q}
-            </button>
-          ))}
-        </div>
+        {peer?.role !== 'DOCTOR' && (
+          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar pointer-events-auto">
+            {QUICK_REPLIES.map(q => (
+              <button key={q} onClick={() => sendMessage(null, q)}
+                className={`px-4 py-1.5 rounded-full text-[12px] font-bold shadow-md border whitespace-nowrap transition ${isDarkMode ? 'bg-[#1a2d29]/90 text-teal-400 border-teal-500/20 hover:bg-[#1a2d29]' : 'bg-white/90 text-[#0d6b5e] border-[#0d6b5e]/20 hover:bg-white'}`}>
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── COMPACT INPUT BAR ── */}
@@ -704,15 +882,19 @@ export default function Chat() {
                 className={`flex-1 bg-transparent py-2.5 px-1 text-sm focus:outline-none max-h-32 resize-none ${isDarkMode ? 'text-slate-100' : 'text-gray-800'}`}
               />
 
+              {peer?.role !== 'DOCTOR' && (
                 <button type="button" onClick={() => setSendingAnonymous(!sendingAnonymous)}
                   className={`p-2 rounded-full transition ${sendingAnonymous ? 'text-red-500 bg-red-50' : (isDarkMode ? 'text-teal-400 hover:text-teal-300' : 'text-gray-400 hover:text-[#0d6b5e]')}`}
                   title={sendingAnonymous ? "Sending Anonymously" : "Send as Me"}>
                   🎭
                 </button>
+              )}
 
-              <button type="button" onClick={() => setShowStickers(!showStickers)} className={`p-2.5 transition ${showStickers ? (isDarkMode ? 'text-teal-300' : 'text-[#0d6b5e]') : (isDarkMode ? 'text-teal-400 hover:text-[#0d6b5e]' : 'text-gray-400 hover:text-[#0d6b5e]')}`}>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-              </button>
+              {peer?.role !== 'DOCTOR' && (
+                <button type="button" onClick={() => setShowStickers(!showStickers)} className={`p-2.5 transition ${showStickers ? (isDarkMode ? 'text-teal-300' : 'text-[#0d6b5e]') : (isDarkMode ? 'text-teal-400 hover:text-[#0d6b5e]' : 'text-gray-400 hover:text-[#0d6b5e]')}`}>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                </button>
+              )}
               
               <button type="button" onClick={startRecording} className={`p-2.5 transition ${isDarkMode ? 'text-teal-400 hover:text-teal-300' : 'text-gray-400 hover:text-[#0d6b5e]'}`}>
                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>

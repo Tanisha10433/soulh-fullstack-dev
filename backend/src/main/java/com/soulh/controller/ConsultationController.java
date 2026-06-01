@@ -287,6 +287,9 @@ public class ConsultationController {
                 "scheduledAt",  c.getScheduledAt() != null ? c.getScheduledAt().toString() : "",
                 "createdAt",    c.getCreatedAt() != null ? c.getCreatedAt().toString() : ""
             ));
+            // Always include IDs so frontend can navigate to chat
+            m.put("doctorId", c.getDoctorId());
+            m.put("patientId", c.getPatientId());
             if (c.getDoctorSummary() != null) m.put("doctorSummary", c.getDoctorSummary());
 
             // Add doctor info for patient view

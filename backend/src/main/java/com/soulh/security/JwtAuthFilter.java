@@ -39,20 +39,26 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        final String jwt = authHeader.substring(7); // Remove "Bearer " prefix
-        final String userEmail = jwtUtil.extractEmail(jwt);
+        try {
+            final String jwt = authHeader.substring(7); // Remove "Bearer " prefix
+            final String userEmail = jwtUtil.extractEmail(jwt);
 
-        // If email extracted and user not already authenticated
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+            // If email extracted and user not already authenticated
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
-            if (jwtUtil.isTokenValid(jwt, userDetails)) {
-                // Set the user as authenticated in Spring's security context
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (jwtUtil.isTokenValid(jwt, userDetails)) {
+                    // Set the user as authenticated in Spring's security context
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
+        } catch (Exception e) {
+            // Ignore invalid/expired tokens or user details lookup failures.
+            // Let the filter chain proceed; security checks on protected endpoints will
+            // automatically fail due to empty authentication in SecurityContextHolder.
         }
 
         filterChain.doFilter(request, response);

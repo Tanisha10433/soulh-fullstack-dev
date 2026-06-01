@@ -8,4 +8,5 @@ public interface ConsultationRequestRepository extends MongoRepository<Consultat
     List<ConsultationRequest> findByDoctorIdAndStatus(String doctorId, String status);
     List<ConsultationRequest> findByDoctorId(String doctorId);
     List<ConsultationRequest> findByPatientId(String patientId);
+    boolean existsByPatientIdAndDoctorIdAndStatusIn(String patientId, String doctorId, List<String> statuses);
 }

@@ -244,9 +244,14 @@ export default function MyConsultations() {
 }
 
 function ConsultationCard({ consultation: c, isDoctor, onViewDetails, onCancel }) {
+  const navigate = useNavigate();
   const cfg = STATUS_CONFIG[c.status] || STATUS_CONFIG.PENDING;
   const scheduledDate = new Date(c.scheduledAt);
   const isJoinable = c.status === 'CONFIRMED' && Math.abs(Date.now() - scheduledDate.getTime()) < 30 * 60 * 1000;
+  
+  // Who to message: doctor messages patient, patient messages doctor
+  const chatPartnerId = isDoctor ? c.patientId : c.doctorId;
+  const chatPartnerName = isDoctor ? c.patientName : c.doctorName;
 
   return (
     <div className="glass p-5 hover:-translate-y-0.5 transition-all"
@@ -279,13 +284,30 @@ function ConsultationCard({ consultation: c, isDoctor, onViewDetails, onCancel }
         </span>
       </div>
 
-      <div className="flex gap-2 mt-4">
+      <div className="flex gap-2 mt-4 flex-wrap">
         {isJoinable && c.meetingUrl && (
           <a href={c.meetingUrl} target="_blank" rel="noreferrer"
             className="flex-1 py-2 rounded-xl text-xs font-bold text-center transition animate-pulse-slow"
             style={{ background: '#0d6b5e', color: 'white' }}>
             🎥 Join Call Now
           </a>
+        )}
+        {/* Message button — always show for CONFIRMED/COMPLETED and when chatPartnerId is known */}
+        {chatPartnerId && c.status !== 'CANCELLED' && (
+          <button
+            onClick={() => {
+              if (chatPartnerName) {
+                sessionStorage.setItem(`peer_${chatPartnerId}`, JSON.stringify({
+                  id: chatPartnerId,
+                  name: isDoctor ? chatPartnerName : `Dr. ${chatPartnerName}`,
+                }));
+              }
+              navigate(`/chat/${chatPartnerId}`);
+            }}
+            className="flex-1 py-2 rounded-xl text-xs font-bold transition"
+            style={{ background: 'rgba(13,107,94,0.12)', color: '#0d6b5e', border: '1px solid rgba(13,107,94,0.2)' }}>
+            💬 {isDoctor ? 'Message Patient' : 'Message Doctor'}
+          </button>
         )}
         <button onClick={onViewDetails}
           className="flex-1 py-2 rounded-xl text-xs font-bold transition"

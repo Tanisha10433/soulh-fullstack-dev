@@ -16,7 +16,7 @@ export default function Login() {
 
   // Dynamically load Google Identity Services script
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
+    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith('YOUR_GOOGLE_CLIENT_ID')) return;
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
@@ -44,8 +44,20 @@ export default function Login() {
   };
 
   const promptGoogle = () => {
-    if (!GOOGLE_CLIENT_ID) {
-      addToast('Google sign-in not configured. Add VITE_GOOGLE_CLIENT_ID to .env', 'info');
+    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith('YOUR_GOOGLE_CLIENT_ID')) {
+      // Mock Google Sign-In fallback for local development/presentation
+      setGLoading(true);
+      const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+      const payload = btoa(JSON.stringify({ 
+        email: "tanisha10433@gmail.com", 
+        name: "Tanisha Sharma", 
+        sub: "mock-google-sub-12345" 
+      }));
+      const mockToken = `${header}.${payload}.mock_signature`;
+
+      setTimeout(() => {
+        handleGoogleCallback({ credential: mockToken });
+      }, 800);
       return;
     }
     window.google?.accounts.id.prompt();
@@ -221,9 +233,7 @@ export default function Login() {
                 <button type="button" onClick={() => setForm({ email: 'priya@soulh.demo', password: 'Demo@1234' })} className="py-2 px-3 text-xs font-semibold rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition whitespace-nowrap overflow-hidden text-ellipsis">
                   🙍‍♀️ Patient
                 </button>
-                <button type="button" onClick={() => setForm({ email: 'doctor@soulh.com', password: '123456' })} className="col-span-2 py-2 px-3 text-xs font-semibold rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition whitespace-nowrap overflow-hidden text-ellipsis shadow-md">
-                  👨‍⚕️ Dr. Fatima Ali (Endometriosis Specialist)
-                </button>
+
               </div>
             </div>
           </div>

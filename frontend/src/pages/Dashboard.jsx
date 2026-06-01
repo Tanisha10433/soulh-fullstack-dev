@@ -262,8 +262,8 @@ export default function Dashboard() {
               {profile.name[0].toUpperCase()}
             </div>
             <div>
-              <h1 className="text-2xl font-black" style={{ color: '#1a3530' }}>Hey, {profile.name.split(' ')[0]} 👋</h1>
-              <p className="text-sm" style={{ color: '#8aada5' }}>Welcome to your SoulH dashboard</p>
+              <h1 className="text-2xl font-black" style={{ color: 'var(--text-main)' }}>Hey, {profile.name.split(' ')[0]} 👋</h1>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Welcome to your SoulH dashboard</p>
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -294,7 +294,7 @@ export default function Dashboard() {
             <div key={s.label} className="glass p-4 flex flex-col items-center justify-center text-center group hover:-translate-y-1 transition duration-300">
               <span className="text-2xl mb-1 group-hover:scale-125 transition">{s.icon}</span>
               <p className="text-lg font-black" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#8aada5' }}>{s.label}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
             </div>
           ))}
         </div>
@@ -305,7 +305,7 @@ export default function Dashboard() {
           <div className="glass p-7 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(13,107,94,0.1)' }}>🏥</div>
-              <h2 className="text-xl font-bold" style={{ color: '#1a3530' }}>My Health Profile</h2>
+              <h2 className="text-xl font-bold" style={{ color: 'var(--text-main)' }}>My Health Profile</h2>
             </div>
             <div>
               <label className="field-label">Health Condition / Illness</label>
@@ -317,14 +317,14 @@ export default function Dashboard() {
                 placeholder="e.g. Anxiety, Diabetes, PCOS, Lupus..."
                 className="input-field"
               />
-              <p className="text-xs mt-2" style={{ color: '#8aada5' }}>Helps match you with peers who share similar experiences.</p>
+              <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Helps match you with peers who share similar experiences.</p>
             </div>
 
             {/* Privacy Toggle */}
-            <div className="flex items-center justify-between p-4 rounded-2xl" style={{ background: 'rgba(13,107,94,0.04)', border: '1px solid rgba(13,107,94,0.12)' }}>
+            <div className="flex items-center justify-between p-4 rounded-2xl" style={{ background: isDarkMode ? 'rgba(13,107,94,0.15)' : 'rgba(13,107,94,0.04)', border: isDarkMode ? '1px solid rgba(13,107,94,0.3)' : '1px solid rgba(13,107,94,0.12)' }}>
               <div>
-                <p className="font-semibold text-sm" style={{ color: '#1a3530' }}>Profile Visibility</p>
-                <p className="text-xs mt-0.5" style={{ color: '#8aada5' }}>{isPublic ? 'Visible to all members' : 'Only you can see this'}</p>
+                <p className="font-semibold text-sm" style={{ color: 'var(--text-main)' }}>Profile Visibility</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{isPublic ? 'Visible to all members' : 'Only you can see this'}</p>
               </div>
               <button
                 id="privacy-toggle"
@@ -399,7 +399,7 @@ export default function Dashboard() {
                           transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                         }} />
                       </div>
-                      <span className="text-xs font-semibold" style={{ color: '#4a7060' }}>
+                      <span className="text-xs font-semibold" style={{ color: isDarkMode ? 'var(--text-muted)' : '#4a7060' }}>
                         {isAnonymousPost ? '🎭 Anonymous' : '👤 Public'}
                       </span>
                     </label>
@@ -415,7 +415,7 @@ export default function Dashboard() {
                   {posts.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-4xl mb-2">🌱</p>
-                      <p className="text-sm" style={{ color: '#8aada5' }}>Be the first to share in the community!</p>
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Be the first to share in the community!</p>
                     </div>
                   ) : posts.map(post => {
                     const isOwn = post.author?.id === profile?.id;
@@ -513,7 +513,7 @@ export default function Dashboard() {
                           <div className="px-4 pb-3 space-y-2" style={{ borderTop: '1px solid rgba(13,107,94,0.07)' }}>
                             <div className="space-y-2 pt-2">
                               {(comments[post.id] || []).length === 0 && (
-                                <p className="text-[11px] text-center py-2" style={{ color: '#8aada5' }}>No comments yet. Be the first!</p>
+                                <p className="text-[11px] text-center py-2" style={{ color: 'var(--text-muted)' }}>No comments yet. Be the first!</p>
                               )}
                               {(comments[post.id] || []).map((c, i) => (
                                 <div key={i} className="flex gap-2">
@@ -539,7 +539,7 @@ export default function Dashboard() {
                                   className="input-field flex-1 text-xs py-2" style={{ borderRadius: '10px' }} />
                                 <button type="submit" className="btn-primary px-3 py-2 text-xs" style={{ borderRadius: '10px' }}>Send</button>
                               </div>
-                              <div className="text-[9px] text-right pr-1" style={{ color: (commentInput[post.id]?.length || 0) >= 200 ? '#e8776a' : '#8aada5' }}>
+                              <div className="text-[9px] text-right pr-1" style={{ color: (commentInput[post.id]?.length || 0) >= 200 ? '#e8776a' : 'var(--text-muted)' }}>
                                 {commentInput[post.id]?.length || 0}/200
                               </div>
                             </form>
@@ -556,25 +556,25 @@ export default function Dashboard() {
             {/* DISCOVERY TAB */}
             {activeTab === 'discovery' && (
               <div className="space-y-3">
-                <div className="p-3 rounded-xl flex items-center gap-3" style={{ background: 'rgba(13,107,94,0.06)', border: '1px solid rgba(13,107,94,0.1)' }}>
+                <div className="p-3 rounded-xl flex items-center gap-3" style={{ background: isDarkMode ? 'rgba(13,107,94,0.15)' : 'rgba(13,107,94,0.06)', border: isDarkMode ? '1px solid rgba(13,107,94,0.3)' : '1px solid rgba(13,107,94,0.1)' }}>
                   <span className="text-xl">✨</span>
-                  <p className="text-xs font-semibold" style={{ color: '#0d6b5e' }}>People with "{profile.illnessCondition}"</p>
+                  <p className="text-xs font-semibold" style={{ color: isDarkMode ? 'var(--text-main)' : '#0d6b5e' }}>People with "{profile.illnessCondition}"</p>
                 </div>
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                   {discovery.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-4xl mb-2">🔭</p>
-                      <p className="text-sm" style={{ color: '#8aada5' }}>No suggestions yet. Try updating your profile!</p>
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No suggestions yet. Try updating your profile!</p>
                     </div>
                   ) : discovery.map(u => (
-                    <div key={u.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(13,107,94,0.1)' }}>
+                    <div key={u.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: isDarkMode ? 'rgba(20,34,31,0.6)' : 'rgba(255,255,255,0.6)', border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(13,107,94,0.1)' }}>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: 'linear-gradient(135deg, #0d6b5e, #0f8b7a)' }}>
                           {u.name[0].toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-semibold text-sm" style={{ color: '#1a3530' }}>{u.name}</p>
-                          <p className="text-[10px]" style={{ color: '#0d6b5e' }}>Shared Condition</p>
+                          <p className="font-semibold text-sm" style={{ color: 'var(--text-main)' }}>{u.name}</p>
+                          <p className="text-[10px]" style={{ color: isDarkMode ? 'var(--text-muted)' : '#0d6b5e' }}>Shared Condition</p>
                         </div>
                       </div>
                       <button
@@ -600,17 +600,17 @@ export default function Dashboard() {
               <div className="space-y-3">
                 {/* Welcome tips for new users */}
                 {connections.length === 0 && !searched && (
-                  <div className="p-4 rounded-2xl mb-2" style={{ background: 'rgba(13,107,94,0.06)', border: '1px solid rgba(13,107,94,0.15)' }}>
-                    <p className="font-bold text-sm mb-2" style={{ color: '#0d6b5e' }}>👋 Getting Started with SoulH</p>
+                  <div className="p-4 rounded-2xl mb-2" style={{ background: isDarkMode ? 'rgba(13,107,94,0.15)' : 'rgba(13,107,94,0.06)', border: isDarkMode ? '1px solid rgba(13,107,94,0.3)' : '1px solid rgba(13,107,94,0.15)' }}>
+                    <p className="font-bold text-sm mb-2" style={{ color: isDarkMode ? 'var(--text-main)' : '#0d6b5e' }}>👋 Getting Started with SoulH</p>
                     <div className="grid grid-cols-3 gap-2">
                       {[
                         { num: '1', label: 'Search your condition below' },
                         { num: '2', label: 'Send a connection request' },
                         { num: '3', label: 'Start a private chat' },
                       ].map(s => (
-                        <div key={s.num} className="text-center p-2 rounded-xl" style={{ background: 'rgba(13,107,94,0.06)' }}>
+                        <div key={s.num} className="text-center p-2 rounded-xl" style={{ background: isDarkMode ? 'rgba(13,107,94,0.1)' : 'rgba(13,107,94,0.06)' }}>
                           <div className="w-6 h-6 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-black text-white" style={{ background: '#0d6b5e' }}>{s.num}</div>
-                          <p className="text-xs" style={{ color: '#4a7060' }}>{s.label}</p>
+                          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
                         </div>
                       ))}
                     </div>
@@ -629,33 +629,33 @@ export default function Dashboard() {
                       onClick={() => setFilterVerified(!filterVerified)}
                       className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition"
                       style={{
-                        background: filterVerified ? '#0d6b5e' : 'white',
-                        border: `1.5px solid ${filterVerified ? '#0d6b5e' : 'rgba(13,107,94,0.3)'}`,
+                        background: filterVerified ? '#0d6b5e' : (isDarkMode ? 'rgba(13,107,94,0.1)' : 'white'),
+                        border: `1.5px solid ${filterVerified ? '#0d6b5e' : (isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(13,107,94,0.3)')}`,
                       }}
                     >
                       {filterVerified && <span className="text-white" style={{ fontSize: '10px', fontWeight: 900 }}>✓</span>}
                     </div>
-                    <span className="text-xs font-semibold" style={{ color: '#4a7060' }}>Show verified doctors only</span>
+                    <span className="text-xs font-semibold" style={{ color: isDarkMode ? 'var(--text-muted)' : '#4a7060' }}>Show verified doctors only</span>
                   </label>
                 </form>
                 <div className="space-y-2 max-h-52 overflow-y-auto">
                   {searched && searchResults.length === 0 ? (
                     <div className="text-center py-6">
                       <p className="text-3xl mb-2">😔</p>
-                      <p className="text-sm" style={{ color: '#8aada5' }}>No{filterVerified ? ' verified' : ''} users found with this condition.</p>
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No{filterVerified ? ' verified' : ''} users found with this condition.</p>
                     </div>
                   ) : searchResults
                       .filter(u => u.id !== profile.id)
                       .filter(u => !filterVerified || u.verified)
                       .map(u => (
-                    <div key={u.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(13,107,94,0.04)', border: '1px solid rgba(13,107,94,0.1)' }}>
+                    <div key={u.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: isDarkMode ? 'rgba(20,34,31,0.4)' : 'rgba(13,107,94,0.04)', border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(13,107,94,0.1)' }}>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: 'linear-gradient(135deg, #0d6b5e, #0f8b7a)' }}>
                           {u.name[0].toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-semibold text-sm" style={{ color: '#1a3530' }}>{u.name}</p>
-                          <p className="text-xs" style={{ color: '#0d6b5e' }}>{u.illnessCondition}</p>
+                          <p className="font-semibold text-sm" style={{ color: 'var(--text-main)' }}>{u.name}</p>
+                          <p className="text-xs" style={{ color: isDarkMode ? 'var(--text-muted)' : '#0d6b5e' }}>{u.illnessCondition}</p>
                         </div>
                       </div>
                       <button
@@ -675,7 +675,7 @@ export default function Dashboard() {
                   {!searched && (
                     <div className="text-center py-8">
                       <p className="text-4xl mb-2">🔍</p>
-                      <p className="text-sm" style={{ color: '#8aada5' }}>Search peers by condition name.</p>
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Search peers by condition name.</p>
                     </div>
                   )}
                 </div>
@@ -714,28 +714,28 @@ export default function Dashboard() {
             {/* DOCTORS TAB */}
             {activeTab === 'doctors' && (
               <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                <div className="p-4 rounded-xl mb-3 flex items-center gap-3" style={{ background: 'linear-gradient(135deg, rgba(13,107,94,0.1), rgba(15,139,122,0.05))', border: '1px solid rgba(13,107,94,0.2)' }}>
+                <div className="p-4 rounded-xl mb-3 flex items-center gap-3" style={{ background: isDarkMode ? 'linear-gradient(135deg, rgba(13,107,94,0.2), rgba(15,139,122,0.1))' : 'linear-gradient(135deg, rgba(13,107,94,0.1), rgba(15,139,122,0.05))', border: isDarkMode ? '1px solid rgba(13,107,94,0.3)' : '1px solid rgba(13,107,94,0.2)' }}>
                   <div className="text-3xl">👨‍⚕️</div>
                   <div>
-                    <h3 className="font-bold text-sm" style={{ color: '#1a3530' }}>Ask a Doctor</h3>
-                    <p className="text-xs" style={{ color: '#4a7060' }}>Start a free consultation with verified medical professionals.</p>
+                    <h3 className="font-bold text-sm" style={{ color: 'var(--text-main)' }}>Ask a Doctor</h3>
+                    <p className="text-xs" style={{ color: isDarkMode ? 'var(--text-muted)' : '#4a7060' }}>Start a free consultation with verified medical professionals.</p>
                   </div>
                 </div>
 
                 {doctors.length === 0 ? (
                   <div className="text-center py-6">
                     <p className="text-3xl mb-2">🧑‍⚕️</p>
-                    <p className="text-sm" style={{ color: '#8aada5' }}>No verified doctors available right now.</p>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No verified doctors available right now.</p>
                   </div>
                 ) : (
                   doctors.filter(d => d.id !== profile.id).map(doc => (
-                    <div key={doc.id} className="flex items-center justify-between p-4 rounded-xl shadow-sm transition hover:-translate-y-0.5" style={{ background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(13,107,94,0.15)' }}>
+                    <div key={doc.id} className="flex items-center justify-between p-4 rounded-xl shadow-sm transition hover:-translate-y-0.5" style={{ background: isDarkMode ? 'rgba(20,34,31,0.6)' : 'rgba(255,255,255,0.7)', border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(13,107,94,0.15)' }}>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black text-white" style={{ background: 'linear-gradient(135deg, #0d6b5e, #0f8b7a)' }}>
                           {doc.name?.[0]?.toUpperCase() || '?'}
                         </div>
                         <div>
-                          <p className="font-bold text-sm flex items-center gap-1" style={{ color: '#1a3530' }}>
+                          <p className="font-bold text-sm flex items-center gap-1" style={{ color: 'var(--text-main)' }}>
                             {doc.name?.toLowerCase().startsWith('dr.') ? doc.name : `Dr. ${doc.name}`}
                             <span className="badge badge-teal py-0 px-1 text-[9px] relative group cursor-default">
                               <span className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded w-36 text-center shadow-lg pointer-events-none z-50">
@@ -745,7 +745,7 @@ export default function Dashboard() {
                             </span>
                           </p>
                           <p className="text-xs font-semibold" style={{ color: '#0d6b5e' }}>{doc.illnessCondition} • {doc.experience} Yrs</p>
-                          <p className="text-[10px] mt-0.5" style={{ color: '#8aada5' }}>{doc.hospital}</p>
+                          <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{doc.hospital}</p>
                         </div>
                       </div>
                       {consultations.some(c => (c.status === 'CONFIRMED' || c.status === 'COMPLETED') && c.doctorId === doc.id) ? (
@@ -761,7 +761,7 @@ export default function Dashboard() {
                         <Link
                           to={`/doctors/${doc.id}/book`}
                           className="text-xs font-bold px-4 py-2 rounded-xl shadow-sm hover:shadow"
-                          style={{ background: 'rgba(13,107,94,0.1)', color: '#0d6b5e', border: '1px solid rgba(13,107,94,0.2)' }}
+                          style={{ background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(13,107,94,0.1)', color: isDarkMode ? 'var(--text-main)' : '#0d6b5e', border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(13,107,94,0.2)' }}
                         >
                           Book
                         </Link>
@@ -776,26 +776,26 @@ export default function Dashboard() {
             {activeTab === 'connections' && (
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {connections.length === 0 ? (
-                  <div className="text-center py-8"><p className="text-4xl mb-2">🤝</p><p className="text-sm" style={{ color: '#8aada5' }}>No connections yet. Find peers above!</p></div>
+                  <div className="text-center py-8"><p className="text-4xl mb-2">🤝</p><p className="text-sm" style={{ color: 'var(--text-muted)' }}>No connections yet. Find peers above!</p></div>
                 ) : connections.map(conn => {
                   const peer = getPeerFromConn(conn);
                   if (!peer) return null;
                   return (
-                    <div key={conn.id} className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'rgba(13,107,94,0.04)', border: '1px solid rgba(13,107,94,0.12)' }}>
+                    <div key={conn.id} className="flex items-center justify-between p-4 rounded-xl" style={{ background: isDarkMode ? 'rgba(20,34,31,0.4)' : 'rgba(13,107,94,0.04)', border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(13,107,94,0.12)' }}>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: 'linear-gradient(135deg, #0f8b7a, #059669)' }}>
                           {peer.name?.[0]?.toUpperCase() || '?'}
                         </div>
                         <div>
-                          <p className="font-semibold text-sm" style={{ color: '#1a3530' }}>{peer.name}</p>
-                          <p className="text-xs" style={{ color: '#0d6b5e' }}>{peer.illnessCondition || 'Connected'}</p>
+                          <p className="font-semibold text-sm" style={{ color: 'var(--text-main)' }}>{peer.name}</p>
+                          <p className="text-xs" style={{ color: isDarkMode ? 'var(--text-muted)' : '#0d6b5e' }}>{peer.illnessCondition || 'Connected'}</p>
                         </div>
                       </div>
                       <Link
                         to={`/chat/${peer.id}`}
                         onClick={() => sessionStorage.setItem(`peer_${peer.id}`, JSON.stringify(peer))}
                         className="text-xs font-bold px-3 py-1.5 rounded-xl"
-                        style={{ background: 'rgba(13,107,94,0.1)', color: '#0d6b5e', border: '1px solid rgba(13,107,94,0.2)' }}
+                        style={{ background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(13,107,94,0.1)', color: isDarkMode ? 'var(--text-main)' : '#0d6b5e', border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(13,107,94,0.2)' }}
                       >
                         💬 Chat
                       </Link>
@@ -818,18 +818,18 @@ export default function Dashboard() {
             external ? (
               <a key={label} href={to} target="_blank" rel="noopener noreferrer" className="glass-hover p-5 flex flex-col items-center justify-center gap-2 text-center no-underline">
                 <span className="text-3xl">{emoji}</span>
-                <span className="text-sm font-semibold" style={{ color: '#4a7060' }}>{label}</span>
+                <span className="text-sm font-semibold" style={{ color: isDarkMode ? 'var(--text-muted)' : '#4a7060' }}>{label}</span>
                 <span className="badge badge-teal" style={{ padding: '2px 8px', fontSize: '10px' }}>Open</span>
               </a>
             ) : to ? (
               <Link key={label} to={to} className="glass-hover p-5 flex flex-col items-center justify-center gap-2 text-center">
                 <span className="text-3xl">{emoji}</span>
-                <span className="text-sm font-semibold" style={{ color: '#4a7060' }}>{label}</span>
+                <span className="text-sm font-semibold" style={{ color: isDarkMode ? 'var(--text-muted)' : '#4a7060' }}>{label}</span>
               </Link>
             ) : (
               <div key={label} onClick={onClick} className="glass-hover p-5 flex flex-col items-center justify-center gap-2 cursor-pointer text-center">
                 <span className="text-3xl">{emoji}</span>
-                <span className="text-sm font-semibold" style={{ color: '#4a7060' }}>{label}</span>
+                <span className="text-sm font-semibold" style={{ color: isDarkMode ? 'var(--text-muted)' : '#4a7060' }}>{label}</span>
                 {soon && <span className="badge badge-indigo" style={{ padding: '2px 8px', fontSize: '10px' }}>{soon}</span>}
               </div>
             )
