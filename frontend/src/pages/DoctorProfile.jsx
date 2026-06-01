@@ -9,12 +9,17 @@ export default function DoctorProfile() {
   const { isDarkMode } = useTheme();
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [canChat, setCanChat] = useState(false);
 
   useEffect(() => {
     api.get(`/api/users/${doctorId}`)
       .then(res => setDoctor(res.data))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
+
+    api.get(`/api/connections/status/${doctorId}`)
+      .then(res => setCanChat(res.data.connected))
+      .catch(() => setCanChat(false));
   }, [doctorId]);
 
   if (loading) return (
@@ -94,12 +99,14 @@ export default function DoctorProfile() {
                   <Link to={`/doctors/${doctor.id}/book`} className="px-10 py-4 rounded-2xl bg-teal-600 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-teal-600/20 hover:scale-105 transition active:scale-95">
                     Request Guidance
                   </Link>
-                  <Link 
-                    to={`/chat/${doctor.id}`} 
-                    onClick={() => sessionStorage.setItem(`peer_${doctor.id}`, JSON.stringify(doctor))}
-                    className="px-10 py-4 rounded-2xl bg-white text-teal-700 border-2 border-teal-700 font-black uppercase tracking-widest text-xs hover:bg-teal-50 transition active:scale-95">
-                    Send Message
-                  </Link>
+                  {canChat && (
+                    <Link 
+                      to={`/chat/${doctor.id}`} 
+                      onClick={() => sessionStorage.setItem(`peer_${doctor.id}`, JSON.stringify(doctor))}
+                      className="px-10 py-4 rounded-2xl bg-white text-teal-700 border-2 border-teal-700 font-black uppercase tracking-widest text-xs hover:bg-teal-50 transition active:scale-95">
+                      Send Message
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useWebSocket } from '../context/WebSocketContext';
+import { useTheme } from '../context/ThemeContext';
 import api from '../api';
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
@@ -36,6 +37,7 @@ export default function Chat() {
   const { stompClient, isConnected } = useWebSocket();
   const { refreshUser } = useAuth();
   const location = useLocation();
+  const { isDarkMode } = useTheme();
 
   // Handle both /chat/:userId and /chat?recipient=...
   const queryParams = new URLSearchParams(location.search);
@@ -62,7 +64,24 @@ export default function Chat() {
   const bottomRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const messagesContainerRef = useRef(null);
-  const messagesContainerRef = useRef(null);
+
+  const [isConnectedToPeer, setIsConnectedToPeer] = useState(true);
+  const [checkingConnection, setCheckingConnection] = useState(true);
+
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    setCheckingConnection(true);
+    api.get(`/api/connections/status/${effectiveUserId}`)
+      .then(res => {
+        setIsConnectedToPeer(res.data.connected);
+      })
+      .catch(() => {
+        setIsConnectedToPeer(false);
+      })
+      .finally(() => {
+        setCheckingConnection(false);
+      });
+  }, [effectiveUserId]);
 
   // Instant peer info from session storage (saved by Dashboard)
   const cachedPeer = useMemo(() => {
@@ -630,6 +649,29 @@ export default function Chat() {
           ) : isBlockingMe ? (
             <div className={`flex-1 rounded-full px-6 py-3 text-center text-sm font-bold border ${isDarkMode ? 'bg-[#1a2d29] text-slate-400 border-gray-800' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
                You can no longer send messages to this user.
+            </div>
+          ) : (!checkingConnection && !isConnectedToPeer) ? (
+            <div className={`flex-1 rounded-2xl px-6 py-4 text-center text-sm font-bold border flex flex-col sm:flex-row items-center justify-between gap-4 ${isDarkMode ? 'bg-[#1a2d29] text-slate-300 border-teal-500/20' : 'bg-teal-50/50 text-[#0d6b5e] border-[#0d6b5e]/20'}`}>
+               <span>
+                 {peer?.role === 'DOCTOR' 
+                   ? "You can only message this doctor if you have a confirmed consultation." 
+                   : "You must be connected with this user to send messages."}
+               </span>
+               {peer?.role === 'DOCTOR' ? (
+                 <button 
+                   type="button" 
+                   onClick={() => navigate(`/doctors/${peer.id}/book`)}
+                   className="px-5 py-2 rounded-xl text-xs font-black text-white uppercase tracking-widest bg-[#0d6b5e] hover:bg-[#0b5e52] shadow-md hover:scale-[1.02] active:scale-[0.98] transition shrink-0">
+                   Book Consultation
+                 </button>
+               ) : (
+                 <button 
+                   type="button" 
+                   onClick={() => navigate('/dashboard')}
+                   className="px-5 py-2 rounded-xl text-xs font-black text-white uppercase tracking-widest bg-[#0d6b5e] hover:bg-[#0b5e52] shadow-md hover:scale-[1.02] active:scale-[0.98] transition shrink-0">
+                   Back to Dashboard
+                 </button>
+               )}
             </div>
           ) : isRecording ? (
             <div className={`flex-1 rounded-full flex items-center px-4 py-2 shadow-sm border ${isDarkMode ? 'bg-[#14221f] border-red-905/50' : 'bg-white border-red-200'}`}>

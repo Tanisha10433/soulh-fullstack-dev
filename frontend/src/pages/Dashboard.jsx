@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [connections, setConnections] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [consultations, setConsultations] = useState([]);
   const [discovery, setDiscovery] = useState([]);
   const [activeTab, setActiveTab] = useState('feed');
   const [respondingReq, setRespondingReq] = useState({});
@@ -47,12 +48,13 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [profileRes, pendingRes, connRes, doctorsRes, discoveryRes] = await Promise.all([
+      const [profileRes, pendingRes, connRes, doctorsRes, discoveryRes, consultationsRes] = await Promise.all([
         api.get('/api/users/me'),
         api.get('/api/connections/pending'),
         api.get('/api/connections'),
         api.get('/api/users/doctors'),
-        api.get('/api/users/discover')
+        api.get('/api/users/discover'),
+        api.get('/api/consultations/my')
       ]);
       setProfile(profileRes.data);
       setCondition(profileRes.data.illnessCondition || '');
@@ -61,6 +63,7 @@ export default function Dashboard() {
       setConnections(connRes.data);
       setDoctors(doctorsRes.data);
       setDiscovery(discoveryRes.data);
+      setConsultations(consultationsRes.data || []);
 
       try {
         const postsRes = await api.get('/api/communities/1/posts');
@@ -745,14 +748,24 @@ export default function Dashboard() {
                           <p className="text-[10px] mt-0.5" style={{ color: '#8aada5' }}>{doc.hospital}</p>
                         </div>
                       </div>
-                      <Link
-                        to={`/chat/${doc.id}`}
-                        onClick={() => sessionStorage.setItem(`peer_${doc.id}`, JSON.stringify(doc))}
-                        className="text-xs font-bold px-4 py-2 rounded-xl shadow-sm hover:shadow"
-                        style={{ background: '#0d6b5e', color: 'white' }}
-                      >
-                        Ask
-                      </Link>
+                      {consultations.some(c => (c.status === 'CONFIRMED' || c.status === 'COMPLETED') && c.doctorId === doc.id) ? (
+                        <Link
+                          to={`/chat/${doc.id}`}
+                          onClick={() => sessionStorage.setItem(`peer_${doc.id}`, JSON.stringify(doc))}
+                          className="text-xs font-bold px-4 py-2 rounded-xl shadow-sm hover:shadow"
+                          style={{ background: '#0d6b5e', color: 'white' }}
+                        >
+                          Chat
+                        </Link>
+                      ) : (
+                        <Link
+                          to={`/doctors/${doc.id}/book`}
+                          className="text-xs font-bold px-4 py-2 rounded-xl shadow-sm hover:shadow"
+                          style={{ background: 'rgba(13,107,94,0.1)', color: '#0d6b5e', border: '1px solid rgba(13,107,94,0.2)' }}
+                        >
+                          Book
+                        </Link>
+                      )}
                     </div>
                   ))
                 )}

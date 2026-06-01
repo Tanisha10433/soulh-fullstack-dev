@@ -64,10 +64,9 @@ public class ConnectionService {
 
     private boolean hasActiveConsultation(String userId1, String userId2) {
         try {
-            return consultationRepo.findAll().stream()
-                    .anyMatch(c -> "CONFIRMED".equals(c.getStatus()) &&
-                                   ((userId1.equals(c.getPatientId()) && userId2.equals(c.getDoctorId())) ||
-                                    (userId2.equals(c.getPatientId()) && userId1.equals(c.getDoctorId()))));
+            List<String> activeStatuses = List.of("CONFIRMED", "COMPLETED");
+            return consultationRepo.existsByPatientIdAndDoctorIdAndStatusIn(userId1, userId2, activeStatuses) ||
+                   consultationRepo.existsByPatientIdAndDoctorIdAndStatusIn(userId2, userId1, activeStatuses);
         } catch (Exception e) {
             return false;
         }

@@ -9,4 +9,5 @@ public interface ConsultationRepository extends MongoRepository<Consultation, St
     List<Consultation> findByDoctorIdOrderByCreatedAtDesc(String doctorId);
     List<Consultation> findByDoctorIdAndStatus(String doctorId, String status);
     List<Consultation> findByDoctorId(String doctorId);
+    boolean existsByPatientIdAndDoctorIdAndStatusIn(String patientId, String doctorId, List<String> statuses);
 }

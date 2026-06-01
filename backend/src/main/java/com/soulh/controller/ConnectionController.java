@@ -48,4 +48,14 @@ public class ConnectionController {
         var me = userService.getByEmail(ud.getUsername());
         return ResponseEntity.ok(connectionService.respond(requestId, me, body.get("action")));
     }
+
+    @GetMapping("/status/{targetUserId}")
+    public ResponseEntity<?> checkConnectionStatus(
+            @AuthenticationPrincipal UserDetails ud,
+            @PathVariable String targetUserId) {
+        var me = userService.getByEmail(ud.getUsername());
+        var other = userService.getById(targetUserId);
+        boolean connected = connectionService.areConnected(me, other);
+        return ResponseEntity.ok(Map.of("connected", connected));
+    }
 }
