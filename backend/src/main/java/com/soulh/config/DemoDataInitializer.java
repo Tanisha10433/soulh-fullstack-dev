@@ -38,7 +38,7 @@ public class DemoDataInitializer implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         // Seed demo users and initial data
-        seedDemoData();
+        // seedDemoData(); // disabled as per user request to remove hardcoded results
     }
 
     private void seedDemoData() {
