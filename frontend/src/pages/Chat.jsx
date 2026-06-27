@@ -355,15 +355,16 @@ export default function Chat() {
     return null;
   }, [messages, effectiveUserId]);
 
-  // Derive peer name from all available sources
-  const displayPeerName = (
-    peer?.name ||
-    cachedPeer?.name ||
-    peerFromMessages?.name ||
-    peer?.email?.split('@')[0] ||
-    cachedPeer?.email?.split('@')[0] ||
-    'Fetching...'
-  );
+  // Derive peer name from all available sources — guaranteed never empty
+  const displayPeerName = (() => {
+    const name = peer?.name || cachedPeer?.name || peerFromMessages?.name;
+    if (name && name.trim()) return name.trim();
+    // Fallback: use email prefix
+    const email = peer?.email || cachedPeer?.email;
+    if (email) return email.split('@')[0];
+    return 'Fetching...';
+  })();
+
   const isPeerNameLoading = !peer?.name && !cachedPeer?.name && !peerFromMessages?.name;
   const isPeerVerified = peer?.verified ?? peer?.isVerified ?? cachedPeer?.verified ?? cachedPeer?.isVerified ?? peerFromMessages?.isVerified ?? false;
 

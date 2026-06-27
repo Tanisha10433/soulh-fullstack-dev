@@ -1,5 +1,7 @@
 package com.soulh.controller;
 
+import com.soulh.dto.UserDTO;
+
 import com.soulh.model.User;
 import com.soulh.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +28,20 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable String id) {
-        return ResponseEntity.ok(userService.getById(id));
+    public ResponseEntity<UserDTO> getUserById(@PathVariable String id) {
+        User user = userService.getById(id);
+        // Guarantee name is never null — fall back to email prefix
+        String displayName = (user.getName() != null && !user.getName().isBlank())
+                ? user.getName()
+                : (user.getEmail() != null ? user.getEmail().split("@")[0] : "User");
+        return ResponseEntity.ok(UserDTO.builder()
+                .id(user.getId())
+                .name(displayName)
+                .email(user.getEmail())
+                .illnessCondition(user.getIllnessCondition())
+                .isVerified(user.isVerified())
+                .role(user.getRole() != null ? user.getRole().name() : null)
+                .build());
     }
 
     @GetMapping("/search")

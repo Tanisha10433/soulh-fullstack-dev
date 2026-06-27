@@ -9,6 +9,7 @@ import lombok.Data;
 public class UserDTO {
     private String id;
     private String name;
+    private String email;
     private String illnessCondition;
 
     // Explicit @JsonProperty to ensure Jackson serializes as "isVerified" not "verified"
