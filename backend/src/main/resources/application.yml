@@ -5,11 +5,13 @@ spring:
     mongodb:
       # Local dev uses localhost; production uses MONGODB_URI from env
       uri: ${MONGODB_URI:mongodb://localhost:27017/soulh_db}
-      auto-index-creation: ${SPRING_DATA_MONGODB_AUTO_INDEX_CREATION:true}
+      auto-index-creation: ${SPRING_DATA_MONGODB_AUTO_INDEX_CREATION:false}
+  main:
+    lazy-initialization: false
   h2:
     console:
-      enabled: true
-      path: /h2-console
+      enabled: false
+
 server:
   port: ${PORT:8080}
 
