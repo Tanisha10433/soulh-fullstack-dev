@@ -41,6 +41,13 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
     private final com.soulh.service.RateLimitService rateLimitService;
 
+    /** Health check endpoint for Render / Railway / load balancers */
+    @GetMapping("/health")
+    public ResponseEntity<?> health() {
+        return ResponseEntity.ok(java.util.Map.of("status", "ok", "service", "soulh-backend"));
+    }
+
+
     @PostMapping("/register")
     public ResponseEntity<?> register(
             @RequestBody RegisterRequest request,
