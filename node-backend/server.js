@@ -13,6 +13,7 @@ const connectionRoutes = require('./routes/connectionRoutes');
 const postRoutes = require('./routes/postRoutes');
 const communityRoutes = require('./routes/communityRoutes');
 const consultationRoutes = require('./routes/consultationRoutes');
+const fileRoutes = require('./routes/fileRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -36,6 +37,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/connections', connectionRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/communities', communityRoutes);
+app.use('/api/files', fileRoutes);
 app.use('/api', consultationRoutes); // Mounts /api/doctors/verified, /api/availability, /api/consultations, etc.
 
 // Default API route
