@@ -83,13 +83,6 @@ function Navbar() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
-            <button 
-              onClick={toggleTheme}
-              className="p-2 rounded-xl mr-2 transition hover:bg-teal-50"
-              style={{ background: 'rgba(13,107,94,0.05)', color: '#0d6b5e' }}
-            >
-              {isDarkMode ? '☀️' : '🌙'}
-            </button>
 
             {user && (
               <div className="relative">
@@ -178,13 +171,6 @@ function Navbar() {
 
           {/* Mobile Hamburger */}
           <div className="flex items-center gap-2 md:hidden">
-            <button 
-              onClick={toggleTheme}
-              className="p-2 rounded-xl transition hover:bg-teal-50"
-              style={{ background: 'rgba(13,107,94,0.05)', color: '#0d6b5e' }}
-            >
-              {isDarkMode ? '☀️' : '🌙'}
-            </button>
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="flex flex-col gap-1.5 p-2 rounded-xl transition"
