@@ -15,4 +15,13 @@ COPY --from=build /app/target/*.jar app.jar
 # Render provides PORT env var
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Memory-optimized for Render free tier (512MB RAM)
+ENTRYPOINT ["java", \
+  "-Xmx350m", \
+  "-Xms64m", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=70.0", \
+  "-XX:+UseSerialGC", \
+  "-Dspring.jmx.enabled=false", \
+  "-jar", "app.jar"]
+
