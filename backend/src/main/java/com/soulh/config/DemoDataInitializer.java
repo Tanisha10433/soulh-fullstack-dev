@@ -37,8 +37,29 @@ public class DemoDataInitializer implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        // Seed demo users and initial data
-        // seedDemoData(); // disabled as per user request to remove hardcoded results
+        // Seed demo users first, then fix passwords so they always match login page
+        seedDemoData();
+        // Always run AFTER seed so Demo@1234 overwrites any stale passwords
+        fixDemoPasswords();
+    }
+
+    /**
+     * Ensures all demo accounts have the correct password (Demo@1234).
+     * This runs on every startup to fix any password mismatch from previous seeds.
+     */
+    private void fixDemoPasswords() {
+        String demoPass = passwordEncoder.encode("Demo@1234");
+        String[] demoEmails = {
+            "priya@soulh.demo", "aisha@soulh.demo", "raj@soulh.demo",
+            "dr.arjun@soulh.demo", "dr.priyanka@soulh.demo", "dr.fatima@soulh.demo"
+        };
+        for (String email : demoEmails) {
+            userRepo.findByEmail(email).ifPresent(u -> {
+                u.setPassword(demoPass);
+                userRepo.save(u);
+                log.info("Fixed password for demo user: {}", email);
+            });
+        }
     }
 
     private void seedDemoData() {
@@ -91,33 +112,33 @@ public class DemoDataInitializer implements ApplicationRunner {
 
         // ── Users ───────────────────────────────────────────────────
         User priya = userRepo.save(User.builder()
-                .name("Priya Sharma").email("priya@soulh.demo").password(pass)
+                .name("Priya Sharma").email("priya@soulh.demo").password(demoPass)
                 .role(Role.USER).illnessCondition("Anxiety and Depression")
                 .isPublicProfile(true).isVerified(false).build());
 
         User aisha = userRepo.save(User.builder()
-                .name("Aisha Khan").email("aisha@soulh.demo").password(pass)
+                .name("Aisha Khan").email("aisha@soulh.demo").password(demoPass)
                 .role(Role.USER).illnessCondition("PCOS and Anxiety")
                 .isPublicProfile(true).isVerified(false).build());
 
         User rahul = userRepo.save(User.builder()
-                .name("Rahul Gupta").email("rahul@soulh.demo").password(pass)
+                .name("Rahul Gupta").email("rahul@soulh.demo").password(demoPass)
                 .role(Role.USER).illnessCondition("Type 2 Diabetes")
                 .isPublicProfile(true).isVerified(false).build());
 
         User vikram = userRepo.save(User.builder()
-                .name("Vikram Mehta").email("vikram@soulh.demo").password(pass)
+                .name("Vikram Mehta").email("vikram@soulh.demo").password(demoPass)
                 .role(Role.USER).illnessCondition("Chronic Fatigue Syndrome")
                 .isPublicProfile(true).isVerified(false).build());
 
         User neha = userRepo.save(User.builder()
-                .name("Neha Patel").email("neha@soulh.demo").password(pass)
+                .name("Neha Patel").email("neha@soulh.demo").password(demoPass)
                 .role(Role.USER).illnessCondition("Lupus")
                 .isPublicProfile(true).isVerified(false).build());
 
         // ── Doctors ─────────────────────────────────────────────────
         User drArjun = userRepo.save(User.builder()
-                .name("Dr. Arjun Sharma").email("dr.arjun@soulh.demo").password(pass)
+                .name("Dr. Arjun Sharma").email("dr.arjun@soulh.demo").password(demoPass)
                 .role(Role.DOCTOR).illnessCondition("Chronic Pain and Rheumatology")
                 .experience(12).qualification("MBBS, MD (General Medicine), Fellowship in Pain Management")
                 .hospital("Jaslok Hospital, Mumbai")
@@ -125,10 +146,10 @@ public class DemoDataInitializer implements ApplicationRunner {
                 .expertiseAreas(List.of("Fibromyalgia", "Chronic Fatigue", "Lupus Management", "Mental Wellness"))
                 .awards(List.of("Best Rheumatologist 2024", "Excellence in Patient Care"))
                 .publications(List.of("Managing Chronic Pain in the 21st Century", "The Gut-Brain Connection in Inflammation"))
-                .isPublicProfile(true).isVerified(true).build()); // already verified
+                .isPublicProfile(true).isVerified(true).build());
 
         User drFatima = userRepo.save(User.builder()
-                .name("Dr. Fatima Ali").email("dr.fatima@soulh.demo").password(pass)
+                .name("Dr. Fatima Ali").email("dr.fatima@soulh.demo").password(demoPass)
                 .role(Role.DOCTOR).illnessCondition("Endometriosis Specialist")
                 .experience(12).qualification("MBBS, MD (Gynecology)")
                 .hospital("Apollo Hospitals")
@@ -152,19 +173,19 @@ public class DemoDataInitializer implements ApplicationRunner {
 
         // ── Admins ──────────────────────────────────────────────────
         User admin = userRepo.save(User.builder()
-                .name("SoulH Admin").email("admin@soulh.demo").password(pass)
+                .name("SoulH Admin").email("admin@soulh.demo").password(demoPass)
                 .role(Role.ADMIN).illnessCondition(null)
                 .isPublicProfile(false).isVerified(true).build());
 
         // ── Dataset Dummy Doctors (Kaggle Integration) ──────────────
         User drJohn = userRepo.save(User.builder()
-                .name("Dr. John Anderson").email("j.anderson@soulh.demo").password(pass)
+                .name("Dr. John Anderson").email("j.anderson@soulh.demo").password(demoPass)
                 .role(Role.DOCTOR).illnessCondition("Neurology")
                 .experience(15).qualification("MD, DM Neurology").hospital("Apollo General")
                 .isPublicProfile(true).isVerified(true).build());
 
         User drSarah = userRepo.save(User.builder()
-                .name("Dr. Sarah Jenkins").email("s.jenkins@soulh.demo").password(pass)
+                .name("Dr. Sarah Jenkins").email("s.jenkins@soulh.demo").password(demoPass)
                 .role(Role.DOCTOR).illnessCondition("Rheumatology")
                 .experience(8).qualification("MBBS, MD").hospital("City Care Clinic")
                 .isPublicProfile(true).isVerified(true).build());
