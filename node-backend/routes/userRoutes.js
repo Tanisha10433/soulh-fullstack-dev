@@ -67,18 +67,24 @@ router.post('/me/public-key', authMiddleware, async (req, res) => {
   }
 });
 
-// Search users by condition
+// Search users by name, email, or condition
 router.get('/search', authMiddleware, async (req, res) => {
   try {
-    const { condition } = req.query;
-    if (!condition) {
-      return res.status(400).json({ error: 'Condition is required' });
+    const term = req.query.condition || req.query.q || '';
+    if (!term.trim()) {
+      return res.status(400).json({ error: 'Search term is required' });
     }
 
+    const regex = new RegExp(term.trim(), 'i');
     const users = await User.find({
-      illnessCondition: { $regex: new RegExp(condition, 'i') },
+      _id: { $ne: req.user._id },
       role: 'USER',
-      isPublicProfile: true
+      isPublicProfile: true,
+      $or: [
+        { name: { $regex: regex } },
+        { email: { $regex: regex } },
+        { illnessCondition: { $regex: regex } }
+      ]
     });
 
     res.json(users);
