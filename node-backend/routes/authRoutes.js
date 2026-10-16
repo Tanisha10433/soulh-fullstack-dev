@@ -110,6 +110,15 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Bad credentials' });
     }
 
+    // Account created via Google OAuth has no password — can't login with password
+    if (!user.password) {
+      return res.status(401).json({ error: 'This account uses Google Sign-In. Please use the "Continue with Google" button.' });
+    }
+
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: 'Bad credentials' });

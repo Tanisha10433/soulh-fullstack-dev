@@ -54,7 +54,7 @@ export default function Signup() {
       addToast(`Welcome to SoulH, ${data.name.split(' ')[0]}! 💙`, 'success');
       navigate('/dashboard');
     } catch (err) {
-      addToast(err.response?.data?.message || 'Could not create account.', 'error');
+      addToast(err.response?.data?.error || err.response?.data?.message || 'Could not create account.', 'error');
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,7 @@ export default function Signup() {
       addToast(`Welcome to SoulH, ${data.name.split(' ')[0]}! 💙`, 'success');
       navigate('/dashboard');
     } catch (err) {
-      addToast(err.response?.data?.message || 'Could not create account.', 'error');
+      addToast(err.response?.data?.error || err.response?.data?.message || 'Could not create account.', 'error');
     } finally {
       setLoading(false);
     }

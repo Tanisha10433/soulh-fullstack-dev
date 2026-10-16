@@ -25,8 +25,8 @@ api.interceptors.response.use(
       if (refreshToken) {
         try {
           const { data } = await axios.post(`${baseURL}/api/auth/refresh`, { refreshToken });
-          localStorage.setItem('soulh_token', data.accessToken);
-          api.defaults.headers.common['Authorization'] = `Bearer ${data.accessToken}`;
+          localStorage.setItem('soulh_token', data.token);
+          api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
           return api(originalRequest);
         } catch (refreshError) {
           // Refresh failed - logout

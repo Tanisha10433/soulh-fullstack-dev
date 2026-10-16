@@ -72,8 +72,11 @@ export default function Dashboard() {
         console.log("No community found or posts yet.");
       }
     } catch (err) {
-      logout();
-      navigate('/login');
+      console.error("Dashboard loadData error:", err);
+      if (err.response?.status === 401) {
+        logout();
+        navigate('/login');
+      }
     }
   };
 

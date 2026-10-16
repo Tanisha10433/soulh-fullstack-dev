@@ -30,3 +30,8 @@ backend/.classpath
 backend/.project
 backend/data/
 backend/logs/
+
+# Node Backend
+node-backend/node_modules/
+node-backend/.env
+node-backend/uploads/

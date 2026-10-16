@@ -44,14 +44,14 @@ export default function Login() {
       const data = await loginWithGoogle(credential);
       addToast(`Welcome, ${data.name?.split(' ')[0]}! 💙`, 'success');
       navigate('/dashboard');
-    } catch {
+    } catch (err) {
       addToast('Google sign-in failed. Please try again.', 'error');
     } finally {
       setGLoading(false);
     }
   };
 
-  const promptGoogle = () => {
+  const promptGoogle = async () => {
     if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith('YOUR_GOOGLE_CLIENT_ID')) {
       // Mock Google Sign-In fallback for local development/presentation
       setGLoading(true);
@@ -64,9 +64,7 @@ export default function Login() {
       }));
       const mockToken = `${header}.${payload}.mock_signature`;
 
-      setTimeout(() => {
-        handleGoogleCallback({ credential: mockToken });
-      }, 800);
+      await handleGoogleCallback({ credential: mockToken });
       return;
     }
     // With renderButton, this fallback prompt is rarely needed, but we keep it for One Tap
@@ -81,7 +79,7 @@ export default function Login() {
       addToast(`Welcome back, ${data.name.split(' ')[0]}! 💙`, 'success');
       navigate('/dashboard');
     } catch (err) {
-      addToast(err.response?.data?.message || 'Invalid email or password.', 'error');
+      addToast(err.response?.data?.error || err.response?.data?.message || 'Invalid email or password.', 'error');
     } finally {
       setLoading(false);
     }

@@ -54,8 +54,12 @@ export function AuthProvider({ children }) {
 
     // Initialize E2E keys
     if (userObj.id) {
-      const pubKey = await initE2EKeys(userObj.id);
-      api.post('/api/users/me/public-key', { publicKey: pubKey }).catch(() => {});
+      try {
+        const pubKey = await initE2EKeys(userObj.id);
+        api.post('/api/users/me/public-key', { publicKey: pubKey }).catch(() => {});
+      } catch (e) {
+        console.warn('E2E init non-blocking error:', e);
+      }
     }
     return userObj;
   };
@@ -75,8 +79,12 @@ export function AuthProvider({ children }) {
     setUser(userObj);
 
     if (userObj.id) {
-      const pubKey = await initE2EKeys(userObj.id);
-      api.post('/api/users/me/public-key', { publicKey: pubKey }).catch(() => {});
+      try {
+        const pubKey = await initE2EKeys(userObj.id);
+        api.post('/api/users/me/public-key', { publicKey: pubKey }).catch(() => {});
+      } catch (e) {
+        console.warn('E2E init non-blocking error:', e);
+      }
     }
     return userObj;
   };
