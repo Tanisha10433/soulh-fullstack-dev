@@ -237,15 +237,32 @@ export default function Login() {
 
             {/* Quick Demo Logins */}
             <div className="pt-4 border-t border-teal-100/30">
-              <p className="text-xs font-bold text-slate-400 mb-3 text-center uppercase tracking-widest">Demo Credentials</p>
-              <div className="grid grid-cols-2 gap-2">
+              <p className="text-xs font-bold text-slate-400 mb-2 text-center uppercase tracking-widest">Demo Credentials</p>
+              <div className="grid grid-cols-2 gap-2 mb-2">
                 <button type="button" onClick={() => setForm({ email: 'dr.arjun@soulh.demo', password: 'Demo@1234' })} className="py-2 px-3 text-xs font-semibold rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 transition whitespace-nowrap overflow-hidden text-ellipsis">
-                  👨‍⚕️ Doctor (Verified)
+                  👨‍⚕️ Dr. Arjun (Doctor)
                 </button>
                 <button type="button" onClick={() => setForm({ email: 'priya@soulh.demo', password: 'Demo@1234' })} className="py-2 px-3 text-xs font-semibold rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition whitespace-nowrap overflow-hidden text-ellipsis">
-                  🙍‍♀️ Patient
+                  🙍‍♀️ Priya (Patient)
                 </button>
-
+              </div>
+              <p className="text-[10px] font-bold text-slate-400 mb-1.5 text-center uppercase tracking-wider">Peers (Members)</p>
+              <div className="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto pr-1">
+                <button type="button" onClick={() => setForm({ email: 'aarav@soulh.demo', password: 'Demo@1234' })} className="py-1.5 px-2.5 text-[11px] font-semibold rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 transition text-left truncate">
+                  🧘 Aarav (Anxiety)
+                </button>
+                <button type="button" onClick={() => setForm({ email: 'sneha@soulh.demo', password: 'Demo@1234' })} className="py-1.5 px-2.5 text-[11px] font-semibold rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 transition text-left truncate">
+                  🩸 Sneha (Diabetes)
+                </button>
+                <button type="button" onClick={() => setForm({ email: 'rohan@soulh.demo', password: 'Demo@1234' })} className="py-1.5 px-2.5 text-[11px] font-semibold rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 transition text-left truncate">
+                  📖 Rohan (Depression)
+                </button>
+                <button type="button" onClick={() => setForm({ email: 'ananya@soulh.demo', password: 'Demo@1234' })} className="py-1.5 px-2.5 text-[11px] font-semibold rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 transition text-left truncate">
+                  🌸 Ananya (PCOS)
+                </button>
+                <button type="button" onClick={() => setForm({ email: 'kabir@soulh.demo', password: 'Demo@1234' })} className="py-1.5 px-2.5 text-[11px] font-semibold rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 transition text-left truncate col-span-2">
+                  ⚡ Kabir (Migraine)
+                </button>
               </div>
             </div>
           </div>

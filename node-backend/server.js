@@ -4,6 +4,7 @@ const http = require('http');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const setupWebSocket = require('./utils/websocket');
+const seedPeers = require('./utils/seedPeers');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -19,8 +20,10 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const app = express();
 const server = http.createServer(app);
 
-// Connect to Database
-connectDB();
+// Connect to Database & Seed Default Peers
+connectDB().then(() => {
+  seedPeers();
+});
 
 // Middleware
 app.use(cors({
