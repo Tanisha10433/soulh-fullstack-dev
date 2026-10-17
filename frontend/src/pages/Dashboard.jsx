@@ -356,8 +356,8 @@ export default function Dashboard() {
             {/* Tab Bar */}
             <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(13,107,94,0.06)' }}>
               {[
-                { key: 'feed', label: '🌐 Feed' },
-                { key: 'search', label: '🔍 Find' },
+                { key: 'feed', label: '🌐 Community Feed' },
+                { key: 'search', label: '🔍 Search Peers' },
                 { key: 'discovery', label: '✨ Suggested' },
                 { key: 'doctors', label: '👨‍⚕️ Doctors' },
                 { key: 'pending', label: `🔔 Requests${pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ''}` },
@@ -622,10 +622,16 @@ export default function Dashboard() {
                 <form onSubmit={handleSearch} className="space-y-2">
                   <div className="flex gap-2">
                     <input id="search-input" type="text" value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                      placeholder="e.g. Diabetes, Lupus, PCOS..."
-                      className="input-field flex-1" style={{ borderRadius: '12px' }} />
-                    <button id="search-btn" type="submit" className="btn-primary px-4" style={{ borderRadius: '12px', padding: '12px 16px' }}>Go</button>
+                      onChange={e => {
+                        setSearchTerm(e.target.value);
+                        if (!e.target.value.trim()) {
+                          setSearched(false);
+                          setSearchResults([]);
+                        }
+                      }}
+                      placeholder="Search by name (e.g. Harshit, Aarav), email, or condition..."
+                      className="input-field flex-1" style={{ borderRadius: '12px', fontSize: '13px' }} />
+                    <button id="search-btn" type="submit" className="btn-primary px-5" style={{ borderRadius: '12px', padding: '12px 18px', fontWeight: 700 }}>Search</button>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <div
@@ -641,44 +647,83 @@ export default function Dashboard() {
                     <span className="text-xs font-semibold" style={{ color: isDarkMode ? 'var(--text-muted)' : '#4a7060' }}>Show verified doctors only</span>
                   </label>
                 </form>
-                <div className="space-y-2 max-h-52 overflow-y-auto">
-                  {searched && searchResults.length === 0 ? (
-                    <div className="text-center py-6">
-                      <p className="text-3xl mb-2">😔</p>
-                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No{filterVerified ? ' verified' : ''} users found with this condition.</p>
-                    </div>
-                  ) : searchResults
-                      .filter(u => u.id !== profile.id)
-                      .filter(u => !filterVerified || u.verified)
-                      .map(u => (
-                    <div key={u.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: isDarkMode ? 'rgba(20,34,31,0.4)' : 'rgba(13,107,94,0.04)', border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(13,107,94,0.1)' }}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: 'linear-gradient(135deg, #0d6b5e, #0f8b7a)' }}>
-                          {u.name[0].toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm" style={{ color: 'var(--text-main)' }}>{u.name}</p>
-                          <p className="text-xs" style={{ color: isDarkMode ? 'var(--text-muted)' : '#0d6b5e' }}>{u.illnessCondition}</p>
-                        </div>
+
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {searched ? (
+                    searchResults.length === 0 ? (
+                      <div className="text-center py-6">
+                        <p className="text-3xl mb-2">😔</p>
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No{filterVerified ? ' verified' : ''} peers found for "{searchTerm}".</p>
                       </div>
-                      <button
-                        disabled={sendingReq[u.id] || sentReqs[u.id]}
-                        onClick={() => sendRequest(u.id, u)}
-                        className="text-xs font-bold px-3 py-1.5 rounded-xl transition"
-                        style={{
-                          background: sentReqs[u.id] ? 'rgba(5,150,105,0.1)' : 'rgba(13,107,94,0.1)',
-                          color: sentReqs[u.id] ? '#047857' : '#0d6b5e',
-                          border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : '1px solid rgba(13,107,94,0.25)',
-                        }}
-                      >
-                        {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
-                      </button>
-                    </div>
-                  ))}
-                  {!searched && (
-                    <div className="text-center py-8">
-                      <p className="text-4xl mb-2">🔍</p>
-                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Search peers by condition name.</p>
+                    ) : (
+                      searchResults
+                        .filter(u => u.id !== profile.id)
+                        .filter(u => !filterVerified || u.isVerified || u.role === 'DOCTOR')
+                        .map(u => (
+                          <div key={u.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: isDarkMode ? 'rgba(20,34,31,0.6)' : 'rgba(255,255,255,0.6)', border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(13,107,94,0.1)' }}>
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: 'linear-gradient(135deg, #0d6b5e, #0f8b7a)' }}>
+                                {u.name ? u.name[0].toUpperCase() : '👤'}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-sm" style={{ color: 'var(--text-main)' }}>{u.name}</p>
+                                <p className="text-xs" style={{ color: isDarkMode ? 'var(--text-muted)' : '#0d6b5e' }}>{u.illnessCondition || u.role || 'Member'}</p>
+                              </div>
+                            </div>
+                            <button
+                              disabled={sendingReq[u.id] || sentReqs[u.id]}
+                              onClick={() => sendRequest(u.id, u)}
+                              className="text-xs font-bold px-3 py-1.5 rounded-xl transition"
+                              style={{
+                                background: sentReqs[u.id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
+                                color: sentReqs[u.id] ? '#047857' : 'white',
+                                border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
+                              }}
+                            >
+                              {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
+                            </button>
+                          </div>
+                        ))
+                    )
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between py-1 px-1 mb-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Available Members & Peers ({discovery.length})</span>
+                      </div>
+                      {discovery.length === 0 ? (
+                        <div className="text-center py-6">
+                          <p className="text-3xl mb-2">🌱</p>
+                          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No other peers available yet.</p>
+                        </div>
+                      ) : (
+                        discovery
+                          .filter(u => u.id !== profile.id)
+                          .map(u => (
+                            <div key={u.id} className="flex items-center justify-between p-3 rounded-xl mb-2" style={{ background: isDarkMode ? 'rgba(20,34,31,0.6)' : 'rgba(255,255,255,0.6)', border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(13,107,94,0.1)' }}>
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: 'linear-gradient(135deg, #0d6b5e, #0f8b7a)' }}>
+                                  {u.name ? u.name[0].toUpperCase() : '👤'}
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-sm" style={{ color: 'var(--text-main)' }}>{u.name}</p>
+                                  <p className="text-xs" style={{ color: isDarkMode ? 'var(--text-muted)' : '#0d6b5e' }}>{u.illnessCondition || 'Member'}</p>
+                                </div>
+                              </div>
+                              <button
+                                disabled={sendingReq[u.id] || sentReqs[u.id]}
+                                onClick={() => sendRequest(u.id, u)}
+                                className="text-xs font-bold px-3 py-1.5 rounded-xl transition"
+                                style={{
+                                  background: sentReqs[u.id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
+                                  color: sentReqs[u.id] ? '#047857' : 'white',
+                                  border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
+                                }}
+                              >
+                                {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
+                              </button>
+                            </div>
+                          ))
+                      )}
                     </div>
                   )}
                 </div>
