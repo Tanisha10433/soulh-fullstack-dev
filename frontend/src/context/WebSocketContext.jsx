@@ -22,7 +22,7 @@ export const WebSocketProvider = ({ children }) => {
 
     const token = localStorage.getItem('soulh_token');
 
-    const apiBaseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    const apiBaseURL = import.meta.env.VITE_API_URL || 'https://soulh-backend.onrender.com';
 
     const client = new Client({
       // SockJS factory — recreated on each reconnect attempt
