@@ -71,7 +71,17 @@ export default function Dashboard() {
       setProfile(user);
       setCondition(user.illnessCondition || '');
       setIsPublic(user.publicProfile);
-      setPendingRequests(pendingRes.data);
+            const myId = (user?.id || user?._id || '').toString();
+      const myEmail = (user?.email || '').toLowerCase().trim();
+      const incomingOnly = (pendingRes.data || []).filter(r => {
+        const senderId = (r.sender?.id || r.sender?._id || r.sender || '').toString();
+        const senderEmail = (r.sender?.email || '').toLowerCase().trim();
+        // Ignore self-requests
+        if (myId && senderId === myId) return false;
+        if (myEmail && senderEmail === myEmail) return false;
+        return true;
+      });
+      setPendingRequests(incomingOnly);
       setConnections(connRes.data);
       const uniqueDocs = (doctorsRes.data || []).filter((doc, idx, arr) => idx === arr.findIndex(d => d.name?.trim().toLowerCase() === doc.name?.trim().toLowerCase()));
       setDoctors(uniqueDocs);
@@ -769,6 +779,20 @@ export default function Dashboard() {
             {/* PENDING TAB */}
             {activeTab === 'pending' && (
               <div className="space-y-2 max-h-60 overflow-y-auto">
+                                <div className="flex justify-between items-center px-1 mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Incoming Requests</span>
+                  {pendingRequests.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setPendingRequests([]);
+                        addToast('Requests list cleared.', 'info');
+                      }}
+                      className="text-[10px] font-semibold text-rose-500 hover:text-rose-700 underline"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
                 {pendingRequests.length === 0 ? (
                   <div className="text-center py-8"><p className="text-4xl mb-2">🎉</p><p className="text-sm" style={{ color: '#8aada5' }}>No pending requests.</p></div>
                 ) : pendingRequests.map(req => (
