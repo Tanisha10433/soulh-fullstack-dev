@@ -128,7 +128,7 @@ export default function Dashboard() {
       sessionStorage.setItem(`peer_${peerId}`, JSON.stringify(peer));
       addToast(`Connection request sent to ${peer.name}!`, 'success');
     } catch (err) {
-      addToast(err.response?.data?.message || 'Could not send request.', 'error');
+      addToast(err.response?.data?.error || err.response?.data?.message || 'Could not send request.', 'error');
     } finally {
       setSendingReq(p => ({ ...p, [peerId]: false }));
     }
@@ -140,8 +140,8 @@ export default function Dashboard() {
       await api.patch(`/api/connections/${requestId}`, { action });
       await loadData();
       addToast(action === 'ACCEPT' ? 'Connection accepted! 🎉' : 'Request rejected.', action === 'ACCEPT' ? 'success' : 'info');
-    } catch {
-      addToast('Action failed. Please try again.', 'error');
+    } catch (err) {
+      addToast(err.response?.data?.error || err.response?.data?.message || 'Action failed. Please try again.', 'error');
     } finally {
       setRespondingReq(p => ({ ...p, [requestId]: false }));
     }
@@ -617,16 +617,16 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <button
-                        disabled={sendingReq[u.id] || sentReqs[u.id]}
-                        onClick={() => sendRequest(u.id, u)}
+                        disabled={sendingReq[u.id || u._id] || sentReqs[u.id || u._id]}
+                        onClick={() => sendRequest(u.id || u._id, u)}
                         className="text-xs font-bold px-3 py-1.5 rounded-xl transition"
                         style={{
-                          background: sentReqs[u.id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
-                          color: sentReqs[u.id] ? '#047857' : 'white',
-                          border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
+                          background: sentReqs[u.id || u._id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
+                          color: sentReqs[u.id || u._id] ? '#047857' : 'white',
+                          border: sentReqs[u.id || u._id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
                         }}
                       >
-                        {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
+                        {sendingReq[u.id || u._id] ? '...' : sentReqs[u.id || u._id] ? '✓ Sent' : '+ Connect'}
                       </button>
                     </div>
                   ))}
@@ -707,16 +707,16 @@ export default function Dashboard() {
                               </div>
                             </div>
                             <button
-                              disabled={sendingReq[u.id] || sentReqs[u.id]}
-                              onClick={() => sendRequest(u.id, u)}
+                              disabled={sendingReq[u.id || u._id] || sentReqs[u.id || u._id]}
+                              onClick={() => sendRequest(u.id || u._id, u)}
                               className="text-xs font-bold px-3 py-1.5 rounded-xl transition"
                               style={{
-                                background: sentReqs[u.id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
-                                color: sentReqs[u.id] ? '#047857' : 'white',
-                                border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
+                                background: sentReqs[u.id || u._id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
+                                color: sentReqs[u.id || u._id] ? '#047857' : 'white',
+                                border: sentReqs[u.id || u._id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
                               }}
                             >
-                              {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
+                              {sendingReq[u.id || u._id] ? '...' : sentReqs[u.id || u._id] ? '✓ Sent' : '+ Connect'}
                             </button>
                           </div>
                         ))
@@ -746,16 +746,16 @@ export default function Dashboard() {
                                 </div>
                               </div>
                               <button
-                                disabled={sendingReq[u.id] || sentReqs[u.id]}
-                                onClick={() => sendRequest(u.id, u)}
+                                disabled={sendingReq[u.id || u._id] || sentReqs[u.id || u._id]}
+                                onClick={() => sendRequest(u.id || u._id, u)}
                                 className="text-xs font-bold px-3 py-1.5 rounded-xl transition"
                                 style={{
-                                  background: sentReqs[u.id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
-                                  color: sentReqs[u.id] ? '#047857' : 'white',
-                                  border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
+                                  background: sentReqs[u.id || u._id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
+                                  color: sentReqs[u.id || u._id] ? '#047857' : 'white',
+                                  border: sentReqs[u.id || u._id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
                                 }}
                               >
-                                {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
+                                {sendingReq[u.id || u._id] ? '...' : sentReqs[u.id || u._id] ? '✓ Sent' : '+ Connect'}
                               </button>
                             </div>
                           ))
@@ -772,7 +772,7 @@ export default function Dashboard() {
                 {pendingRequests.length === 0 ? (
                   <div className="text-center py-8"><p className="text-4xl mb-2">🎉</p><p className="text-sm" style={{ color: '#8aada5' }}>No pending requests.</p></div>
                 ) : pendingRequests.map(req => (
-                  <div key={req.id} className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'rgba(232,119,106,0.05)', border: '1px solid rgba(232,119,106,0.15)' }}>
+                  <div key={req.id || req._id} className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'rgba(232,119,106,0.05)', border: '1px solid rgba(232,119,106,0.15)' }}>
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: 'linear-gradient(135deg, #e8776a, #d45f52)' }}>
                         {req.sender?.name?.[0]?.toUpperCase() || '?'}
@@ -783,10 +783,10 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => respondToRequest(req.id, 'ACCEPT')} disabled={respondingReq[req.id]}
+                      <button onClick={() => respondToRequest(req.id || req._id, 'ACCEPT')} disabled={respondingReq[req.id || req._id]}
                         className="text-xs font-bold px-3 py-1.5 rounded-xl"
                         style={{ background: 'rgba(5,150,105,0.1)', color: '#047857', border: '1px solid rgba(5,150,105,0.22)' }}>✓</button>
-                      <button onClick={() => respondToRequest(req.id, 'REJECT')} disabled={respondingReq[req.id]}
+                      <button onClick={() => respondToRequest(req.id || req._id, 'REJECT')} disabled={respondingReq[req.id || req._id]}
                         className="text-xs font-bold px-3 py-1.5 rounded-xl"
                         style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)' }}>✕</button>
                     </div>
