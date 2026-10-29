@@ -37,30 +37,31 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await api.post('/api/auth/login', { email, password });
-    // Store token first so subsequent API calls work
     localStorage.setItem('soulh_token', data.token);
     if (data.refreshToken) localStorage.setItem('soulh_refresh_token', data.refreshToken);
 
-    // Fetch full user profile to guarantee all fields (including id) are present
-    let userObj = data;
-    try {
-      const meRes = await api.get('/api/users/me');
-      userObj = { ...data, ...meRes.data }; // merge: fresh profile overrides auth response
-    } catch (e) {
-      // Fallback to auth response data if /me fails
-    }
+    // Set user immediately so UI navigates without waiting
+    const userObj = { ...data };
     localStorage.setItem('soulh_user', JSON.stringify(userObj));
     setUser(userObj);
 
-    // Initialize E2E keys
-    if (userObj.id) {
+    // Background sync: Fetch fresh profile & initialize E2E keys asynchronously
+    (async () => {
       try {
-        const pubKey = await initE2EKeys(userObj.id);
-        api.post('/api/users/me/public-key', { publicKey: pubKey }).catch(() => {});
+        const meRes = await api.get('/api/users/me');
+        const updated = { ...userObj, ...meRes.data };
+        localStorage.setItem('soulh_user', JSON.stringify(updated));
+        setUser(updated);
+
+        if (updated.id) {
+          const pubKey = await initE2EKeys(updated.id);
+          api.post('/api/users/me/public-key', { publicKey: pubKey }).catch(() => {});
+        }
       } catch (e) {
-        console.warn('E2E init non-blocking error:', e);
+        // Silently handle background profile sync failure
       }
-    }
+    })();
+
     return userObj;
   };
 
@@ -69,23 +70,26 @@ export function AuthProvider({ children }) {
     localStorage.setItem('soulh_token', data.token);
     if (data.refreshToken) localStorage.setItem('soulh_refresh_token', data.refreshToken);
 
-    // Fetch full profile so id and all fields are present
-    let userObj = data;
-    try {
-      const meRes = await api.get('/api/users/me');
-      userObj = { ...data, ...meRes.data };
-    } catch (e) {}
+    // Instant UI state update
+    const userObj = { ...data };
     localStorage.setItem('soulh_user', JSON.stringify(userObj));
     setUser(userObj);
 
-    if (userObj.id) {
+    // Background sync without blocking login response
+    (async () => {
       try {
-        const pubKey = await initE2EKeys(userObj.id);
-        api.post('/api/users/me/public-key', { publicKey: pubKey }).catch(() => {});
-      } catch (e) {
-        console.warn('E2E init non-blocking error:', e);
-      }
-    }
+        const meRes = await api.get('/api/users/me');
+        const updated = { ...userObj, ...meRes.data };
+        localStorage.setItem('soulh_user', JSON.stringify(updated));
+        setUser(updated);
+
+        if (updated.id) {
+          const pubKey = await initE2EKeys(updated.id);
+          api.post('/api/users/me/public-key', { publicKey: pubKey }).catch(() => {});
+        }
+      } catch (e) {}
+    })();
+
     return userObj;
   };
 
@@ -94,14 +98,19 @@ export function AuthProvider({ children }) {
     localStorage.setItem('soulh_token', data.token);
     if (data.refreshToken) localStorage.setItem('soulh_refresh_token', data.refreshToken);
 
-    // Fetch full profile to ensure id is stored correctly
-    let userObj = data;
-    try {
-      const meRes = await api.get('/api/users/me');
-      userObj = { ...data, ...meRes.data };
-    } catch (e) {}
+    const userObj = { ...data };
     localStorage.setItem('soulh_user', JSON.stringify(userObj));
     setUser(userObj);
+
+    (async () => {
+      try {
+        const meRes = await api.get('/api/users/me');
+        const updated = { ...userObj, ...meRes.data };
+        localStorage.setItem('soulh_user', JSON.stringify(updated));
+        setUser(updated);
+      } catch (e) {}
+    })();
+
     return userObj;
   };
 
