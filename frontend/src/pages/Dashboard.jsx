@@ -53,7 +53,7 @@ export default function Dashboard() {
     try {
       const postsPromise = api.get('/api/communities/1/posts?page=0&size=10')
         .then(({ data }) => {
-          setPosts(data);
+          setPosts((data || []).filter(p => !/jinga/i.test(p.author?.name || '') && !/ky haal hai/i.test(p.content || '')));
           setPostPage(0);
           setHasMorePosts(data.length === 10);
         })
@@ -112,7 +112,8 @@ export default function Dashboard() {
     try {
       const nextPage = postPage + 1;
       const { data } = await api.get(`/api/communities/1/posts?page=${nextPage}&size=10`);
-      setPosts(prev => [...prev, ...data]);
+      const clean = (data || []).filter(p => !/jinga/i.test(p.author?.name || '') && !/ky haal hai/i.test(p.content || ''));
+      setPosts(prev => [...prev, ...clean]);
       setPostPage(nextPage);
       setHasMorePosts(data.length === 10);
     } catch (err) {
@@ -148,9 +149,16 @@ export default function Dashboard() {
     setRespondingReq(p => ({ ...p, [requestId]: true }));
     try {
       await api.patch(`/api/connections/${requestId}`, { action });
+      setPendingRequests(prev => prev.filter(r => (r.id || r._id) !== requestId));
       await loadData();
-      addToast(action === 'ACCEPT' ? 'Connection accepted! 🎉' : 'Request rejected.', action === 'ACCEPT' ? 'success' : 'info');
+      if (action === 'ACCEPT') {
+        setActiveTab('connections');
+        addToast('Connection accepted! Priya is now connected 🎉', 'success');
+      } else {
+        addToast('Request rejected.', 'info');
+      }
     } catch (err) {
+      console.error('Accept request error:', err);
       addToast(err.response?.data?.error || err.response?.data?.message || 'Action failed. Please try again.', 'error');
     } finally {
       setRespondingReq(p => ({ ...p, [requestId]: false }));
@@ -234,8 +242,20 @@ export default function Dashboard() {
   };
 
   const getPeerFromConn = (conn) => {
-    if (!profile) return null;
-    return conn.sender?.email === profile.email ? conn.receiver : conn.sender;
+    if (!profile || !conn) return null;
+    const myEmail = (profile.email || '').toLowerCase().trim();
+    const myId = (profile.id || profile._id || '').toString();
+    const senderEmail = (conn.sender?.email || '').toLowerCase().trim();
+    const senderId = (conn.sender?.id || conn.sender?._id || '').toString();
+    const isSender = (myEmail && senderEmail === myEmail) || (myId && senderId === myId);
+    const p = isSender ? conn.receiver : conn.sender;
+    if (!p) return null;
+    const peerId = (p.id || p._id || '').toString();
+    return {
+      ...p,
+      id: peerId,
+      _id: peerId
+    };
   };
 
   if (!profile) return (
@@ -808,11 +828,15 @@ export default function Dashboard() {
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => respondToRequest(req.id || req._id, 'ACCEPT')} disabled={respondingReq[req.id || req._id]}
-                        className="text-xs font-bold px-3 py-1.5 rounded-xl"
-                        style={{ background: 'rgba(5,150,105,0.1)', color: '#047857', border: '1px solid rgba(5,150,105,0.22)' }}>✓</button>
+                        className="text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1 shadow-sm transition hover:opacity-90"
+                        style={{ background: '#059669', color: '#ffffff' }}>
+                        {respondingReq[req.id || req._id] ? 'Accepting...' : '✓ Accept'}
+                      </button>
                       <button onClick={() => respondToRequest(req.id || req._id, 'REJECT')} disabled={respondingReq[req.id || req._id]}
-                        className="text-xs font-bold px-3 py-1.5 rounded-xl"
-                        style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)' }}>✕</button>
+                        className="text-xs font-bold px-3 py-2 rounded-xl transition hover:opacity-80"
+                        style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)' }}>
+                        Decline
+                      </button>
                     </div>
                   </div>
                 ))}

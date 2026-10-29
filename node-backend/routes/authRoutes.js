@@ -6,8 +6,50 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
 const DoctorVerification = require('../models/DoctorVerification');
+const ConnectionRequest = require('../models/ConnectionRequest');
+const Message = require('../models/Message');
 
 const JWT_SECRET = process.env.APP_JWT_SECRET || 'soulh-super-secret-jwt-key-must-be-at-least-32-chars-long-for-hmac';
+
+// Helper to auto-connect user with demo peers
+const ensureUserConnectedToPeers = async (user) => {
+  if (!user || user.role !== 'USER') return;
+  try {
+    const demoPeers = await User.find({
+      email: { $in: ['priya@soulh.demo', 'aarav@soulh.demo', 'sneha@soulh.demo', 'kabir@soulh.demo'] },
+      _id: { $ne: user._id }
+    });
+
+    for (const peer of demoPeers) {
+      let conn = await ConnectionRequest.findOne({
+        $or: [
+          { sender: user._id, receiver: peer._id },
+          { sender: peer._id, receiver: user._id }
+        ]
+      });
+
+      if (!conn) {
+        await ConnectionRequest.create({
+          sender: peer._id,
+          receiver: user._id,
+          status: 'ACCEPTED'
+        });
+        await Message.create({
+          senderId: peer._id.toString(),
+          receiverId: user._id.toString(),
+          content: `Hey ${user.name ? user.name.split(' ')[0] : 'there'}! I saw we both share similar mental health & chronic wellness journeys. Welcome to SoulH! 💙`,
+          status: 'read',
+          sentAt: new Date(Date.now() - 15 * 60000)
+        });
+      } else if (conn.status !== 'ACCEPTED') {
+        conn.status = 'ACCEPTED';
+        await conn.save();
+      }
+    }
+  } catch (e) {
+    console.error('Auto connect on login error:', e);
+  }
+};
 
 // Helper to generate access token
 const generateAccessToken = (user) => {
@@ -79,36 +121,8 @@ router.post('/register', async (req, res) => {
       await verification.save();
     }
 
-        // Auto-connect with Priya Sharma & Aarav Patel on login so user always has connected peers
-    try {
-      const ConnectionRequest = require('../models/ConnectionRequest');
-      const Message = require('../models/Message');
-      const priya = await User.findOne({ email: 'priya@soulh.demo' });
-      if (priya && priya._id.toString() !== user._id.toString()) {
-        const existingConn = await ConnectionRequest.findOne({
-          $or: [
-            { sender: user._id, receiver: priya._id },
-            { sender: priya._id, receiver: user._id }
-          ]
-        });
-        if (!existingConn) {
-          await ConnectionRequest.create({
-            sender: priya._id,
-            receiver: user._id,
-            status: 'ACCEPTED'
-          });
-          await Message.create({
-            senderId: priya._id.toString(),
-            receiverId: user._id.toString(),
-            content: 'Hey ' + (user.name ? user.name.split(' ')[0] : 'there') + '! I saw we both share similar mental health & chronic wellness journeys. Welcome to SoulH! 💙',
-            status: 'read',
-            sentAt: new Date(Date.now() - 15 * 60000)
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Auto connect on login error:', e);
-    }
+    // Auto-connect with demo peers so user always has connected peers ready for chat
+    await ensureUserConnectedToPeers(user);
 
     const accessToken = generateAccessToken(user);
     const refreshTokenObj = await createRefreshToken(user._id);
@@ -155,36 +169,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Bad credentials' });
     }
 
-        // Auto-connect with Priya Sharma & Aarav Patel on login so user always has connected peers
-    try {
-      const ConnectionRequest = require('../models/ConnectionRequest');
-      const Message = require('../models/Message');
-      const priya = await User.findOne({ email: 'priya@soulh.demo' });
-      if (priya && priya._id.toString() !== user._id.toString()) {
-        const existingConn = await ConnectionRequest.findOne({
-          $or: [
-            { sender: user._id, receiver: priya._id },
-            { sender: priya._id, receiver: user._id }
-          ]
-        });
-        if (!existingConn) {
-          await ConnectionRequest.create({
-            sender: priya._id,
-            receiver: user._id,
-            status: 'ACCEPTED'
-          });
-          await Message.create({
-            senderId: priya._id.toString(),
-            receiverId: user._id.toString(),
-            content: 'Hey ' + (user.name ? user.name.split(' ')[0] : 'there') + '! I saw we both share similar mental health & chronic wellness journeys. Welcome to SoulH! 💙',
-            status: 'read',
-            sentAt: new Date(Date.now() - 15 * 60000)
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Auto connect on login error:', e);
-    }
+    // Auto-connect with demo peers so user always has connected peers ready for chat
+    await ensureUserConnectedToPeers(user);
 
     const accessToken = generateAccessToken(user);
     
@@ -291,36 +277,8 @@ router.post('/oauth2/google', async (req, res) => {
       }
     }
 
-        // Auto-connect with Priya Sharma & Aarav Patel on login so user always has connected peers
-    try {
-      const ConnectionRequest = require('../models/ConnectionRequest');
-      const Message = require('../models/Message');
-      const priya = await User.findOne({ email: 'priya@soulh.demo' });
-      if (priya && priya._id.toString() !== user._id.toString()) {
-        const existingConn = await ConnectionRequest.findOne({
-          $or: [
-            { sender: user._id, receiver: priya._id },
-            { sender: priya._id, receiver: user._id }
-          ]
-        });
-        if (!existingConn) {
-          await ConnectionRequest.create({
-            sender: priya._id,
-            receiver: user._id,
-            status: 'ACCEPTED'
-          });
-          await Message.create({
-            senderId: priya._id.toString(),
-            receiverId: user._id.toString(),
-            content: 'Hey ' + (user.name ? user.name.split(' ')[0] : 'there') + '! I saw we both share similar mental health & chronic wellness journeys. Welcome to SoulH! 💙',
-            status: 'read',
-            sentAt: new Date(Date.now() - 15 * 60000)
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Auto connect on login error:', e);
-    }
+    // Auto-connect with demo peers so user always has connected peers ready for chat
+    await ensureUserConnectedToPeers(user);
 
     const accessToken = generateAccessToken(user);
     await RefreshToken.deleteMany({ user: user._id });

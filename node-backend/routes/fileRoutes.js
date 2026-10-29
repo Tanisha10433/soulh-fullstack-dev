@@ -43,7 +43,15 @@ router.get('/download/:fileName', (req, res) => {
   try {
     const filePath = path.join(uploadDir, req.params.fileName);
     if (fs.existsSync(filePath)) {
-      res.download(filePath);
+      const ext = path.extname(req.params.fileName).toLowerCase();
+      if (ext === '.webm') {
+        res.setHeader('Content-Type', 'audio/webm');
+      } else if (ext === '.mp3') {
+        res.setHeader('Content-Type', 'audio/mpeg');
+      } else if (ext === '.ogg') {
+        res.setHeader('Content-Type', 'audio/ogg');
+      }
+      res.sendFile(filePath);
     } else {
       res.status(404).json({ error: 'File not found' });
     }

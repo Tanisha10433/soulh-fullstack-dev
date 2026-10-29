@@ -171,11 +171,12 @@ export default function Community() {
       const newPosts = res.data;
       
       if (isInitial) {
-        setPosts(newPosts);
+        setPosts((newPosts || []).filter(p => !/jinga/i.test(p.author?.name || '') && !/ky haal hai/i.test(p.content || '')));
         setPage(1);
         setHasMore(newPosts.length === 10);
       } else {
-        setPosts(prev => [...prev, ...newPosts]);
+        const clean = (newPosts || []).filter(p => !/jinga/i.test(p.author?.name || '') && !/ky haal hai/i.test(p.content || ''));
+        setPosts(prev => [...prev, ...clean]);
         setPage(prev => prev + 1);
         setHasMore(newPosts.length === 10);
       }

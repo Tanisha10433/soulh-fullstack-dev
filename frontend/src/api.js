@@ -3,12 +3,12 @@ import axios from 'axios';
 const baseURL = import.meta.env.VITE_API_URL ?? 'https://soulh-backend.onrender.com';
 const api = axios.create({
   baseURL,
-  timeout: 15000, // 15s timeout — avoids hanging requests on cold start
+  timeout: 45000, // 15s timeout — avoids hanging requests on cold start
 });
 
 // Keep Render free tier warm — ping every 14 minutes
 const PING_INTERVAL_MS = 14 * 60 * 1000;
-const pingBackend = () => axios.get(`${baseURL}/ping`).catch(() => {});
+const pingBackend = () => axios.get(`${baseURL}/api/auth/health`).catch(() => {});
 setInterval(pingBackend, PING_INTERVAL_MS);
 
 // Automatically attach JWT to every request if we have one

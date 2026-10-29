@@ -115,6 +115,12 @@ router.get('/pending', authMiddleware, async (req, res) => {
         const formatted = requests.map(r => {
       const obj = r.toJSON ? r.toJSON() : r.toObject ? r.toObject() : r;
       obj.id = (r._id || r.id).toString();
+      if (obj.sender) {
+        obj.sender.id = (obj.sender._id || obj.sender.id || '').toString();
+      }
+      if (obj.receiver) {
+        obj.receiver.id = (obj.receiver._id || obj.receiver.id || '').toString();
+      }
       return obj;
     });
     res.json(formatted);
@@ -135,6 +141,12 @@ router.get('/', authMiddleware, async (req, res) => {
         const formatted = requests.map(r => {
       const obj = r.toJSON ? r.toJSON() : r.toObject ? r.toObject() : r;
       obj.id = (r._id || r.id).toString();
+      if (obj.sender) {
+        obj.sender.id = (obj.sender._id || obj.sender.id || '').toString();
+      }
+      if (obj.receiver) {
+        obj.receiver.id = (obj.receiver._id || obj.receiver.id || '').toString();
+      }
       return obj;
     });
     res.json(formatted);

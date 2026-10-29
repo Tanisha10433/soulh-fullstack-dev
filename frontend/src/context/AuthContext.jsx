@@ -69,6 +69,7 @@ export function AuthProvider({ children }) {
     const { data } = await api.post('/api/auth/oauth2/google', { idToken });
     localStorage.setItem('soulh_token', data.token);
     if (data.refreshToken) localStorage.setItem('soulh_refresh_token', data.refreshToken);
+    api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
 
     // Instant UI state update
     const userObj = { ...data };

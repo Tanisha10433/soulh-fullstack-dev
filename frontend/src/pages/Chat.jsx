@@ -34,6 +34,28 @@ function VoicePlayer({ src, isMine, isDarkMode }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [audioUrl, setAudioUrl] = useState(src && src.startsWith('blob:') ? src : '');
+
+  // Load audio with auth header via Axios so Spring Security / protected endpoints allow it
+  useEffect(() => {
+    if (!src) return;
+    if (src.startsWith('blob:')) {
+      setAudioUrl(src);
+      return;
+    }
+    let isMounted = true;
+    api.get(src, { responseType: 'blob' })
+      .then(res => {
+        if (!isMounted) return;
+        const bUrl = URL.createObjectURL(res.data);
+        setAudioUrl(bUrl);
+      })
+      .catch(err => {
+        console.warn('Audio fetch fallback to direct URL:', err.message);
+        if (isMounted) setAudioUrl(src);
+      });
+    return () => { isMounted = false; };
+  }, [src]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -124,7 +146,7 @@ function VoicePlayer({ src, isMine, isDarkMode }) {
         ? (isDarkMode ? 'bg-black/20' : 'bg-black/5') 
         : (isDarkMode ? 'bg-black/30' : 'bg-black/5')
     }`}>
-      <audio ref={audioRef} src={src} preload="metadata" />
+      <audio ref={audioRef} src={audioUrl || src} preload="metadata" />
       
       <button 
         type="button"
@@ -279,7 +301,7 @@ export default function Chat() {
         stream.getTracks().forEach(track => track.stop());
       };
 
-      recorder.start();
+      recorder.start(250);
       setIsRecording(true);
       setRecordingTime(0);
       timerIntervalRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
@@ -289,10 +311,17 @@ export default function Chat() {
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {
+        console.error('Stop recorder error:', e);
+      }
+    }
+    setIsRecording(false);
+    if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
     }
   };
 
@@ -325,18 +354,100 @@ export default function Chat() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      stompClient.publish({
-        destination: '/app/chat.sendMessage',
-        body: JSON.stringify({
-          receiverId: effectiveUserId,
-          content: '🎤 Voice Message',
-          voiceUrl: res.data.url,
-          isAnonymous: sendingAnonymous
-        })
-      });
+      const voiceUrl = res.data.url;
+
+      if (stompClient?.connected) {
+        stompClient.publish({
+          destination: '/app/chat.sendMessage',
+          body: JSON.stringify({
+            receiverId: effectiveUserId,
+            content: '🎤 Voice Message',
+            voiceUrl: voiceUrl,
+            isAnonymous: sendingAnonymous
+          })
+        });
+      }
+
+      // Optimistic message so voice player appears in chat immediately
+      const optimisticMsg = {
+        id: 'voice-' + Date.now(),
+        senderId: myId,
+        senderName: user?.name || 'Me',
+        receiverId: effectiveUserId,
+        content: '🎤 Voice Message',
+        voiceUrl: voiceUrl,
+        sentAt: new Date().toISOString(),
+        status: 'sent',
+        isAnonymous: sendingAnonymous
+      };
+      setMessages(prev => [...prev, optimisticMsg]);
       scrollToBottom();
+      addToast('Voice note sent! 🎙️', 'success');
     } catch (err) {
+      console.error('Voice note upload error:', err);
       addToast('Failed to upload voice note', 'error');
+    }
+  };
+
+  // ─── FILE & PHOTO UPLOAD ──────────────────────────────────────────────────
+  const fileInputRef = useRef(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      addToast('File too large (max 10MB)', 'error');
+      return;
+    }
+
+    const isImage = file.type.startsWith('image/');
+    setIsUploadingFile(true);
+    addToast(isImage ? 'Uploading photo...' : 'Uploading file...', 'info');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await api.post('/api/files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const fileUrl = res.data.url;
+      const formattedContent = isImage 
+        ? `[IMAGE]${fileUrl}|${file.name}` 
+        : `[FILE]${fileUrl}|${file.name}|${(file.size / 1024).toFixed(1)} KB`;
+
+      if (stompClient?.connected) {
+        stompClient.publish({
+          destination: '/app/chat.sendMessage',
+          body: JSON.stringify({
+            receiverId: effectiveUserId,
+            content: formattedContent,
+            isAnonymous: sendingAnonymous
+          })
+        });
+      }
+
+      const optimisticMsg = {
+        id: 'file-' + Date.now(),
+        senderId: myId,
+        senderName: user?.name || 'Me',
+        receiverId: effectiveUserId,
+        content: formattedContent,
+        sentAt: new Date().toISOString(),
+        status: 'sent',
+        isAnonymous: sendingAnonymous
+      };
+      setMessages(prev => [...prev, optimisticMsg]);
+      scrollToBottom();
+      addToast(isImage ? 'Photo sent! 🖼️' : 'File sent! 📎', 'success');
+    } catch (err) {
+      console.error('File upload error:', err);
+      addToast('Failed to upload file', 'error');
+    } finally {
+      setIsUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -699,7 +810,52 @@ export default function Chat() {
                           </div>
                         )}
 
-                        {msg.content && msg.content !== '🎤 Voice Message' && (
+                        {msg.content && msg.content.startsWith('[IMAGE]') ? (
+                          (() => {
+                            const raw = msg.content.replace('[IMAGE]', '');
+                            const [iUrl, iAlt] = raw.split('|');
+                            const fullSrc = iUrl.startsWith('http') ? iUrl : `${api.defaults.baseURL}${iUrl}`;
+                            return (
+                              <div className="my-1.5 overflow-hidden rounded-xl max-w-[280px] shadow-sm border border-black/10">
+                                <img 
+                                  src={fullSrc} 
+                                  alt={iAlt || 'Photo'} 
+                                  className="w-full max-h-64 object-cover cursor-pointer hover:opacity-95 transition"
+                                  onClick={() => window.open(fullSrc, '_blank')} 
+                                />
+                                {iAlt && <div className="text-[11px] p-1.5 opacity-80 truncate">{iAlt}</div>}
+                              </div>
+                            );
+                          })()
+                        ) : msg.content && msg.content.startsWith('[FILE]') ? (
+                          (() => {
+                            const raw = msg.content.replace('[FILE]', '');
+                            const [fUrl, fName, fSize] = raw.split('|');
+                            const fullHref = fUrl.startsWith('http') ? fUrl : `${api.defaults.baseURL}${fUrl}`;
+                            return (
+                              <a 
+                                href={fullHref} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                download={fName}
+                                className={`my-1.5 p-3 rounded-xl flex items-center gap-3 no-underline border transition shadow-sm ${
+                                  mine 
+                                    ? 'bg-black/10 border-black/10 hover:bg-black/15' 
+                                    : (isDarkMode ? 'bg-black/30 border-white/10 hover:bg-black/40' : 'bg-gray-50 border-gray-200 hover:bg-gray-100')
+                                }`}
+                              >
+                                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0" style={{ background: '#0d6b5e', color: 'white' }}>
+                                  📎
+                                </div>
+                                <div className="overflow-hidden min-w-0 flex-1">
+                                  <p className="text-xs font-bold truncate leading-tight" style={{ color: 'var(--text-main)' }}>{fName || 'Attached File'}</p>
+                                  <p className="text-[10px] text-gray-500 mt-0.5">{fSize || 'Download file'}</p>
+                                </div>
+                                <span className="text-xs font-bold text-[#0d6b5e] shrink-0">Download</span>
+                              </a>
+                            );
+                          })()
+                        ) : msg.content && msg.content !== '🎤 Voice Message' && (
                           <div className={`text-[14px] leading-normal whitespace-pre-wrap word-break-words pr-12 ${isDarkMode ? 'text-slate-200' : 'text-gray-800'}`}>
                             {msg.content}
                           </div>
@@ -853,17 +1009,19 @@ export default function Chat() {
                )}
             </div>
           ) : isRecording ? (
-            <div className={`flex-1 rounded-full flex items-center px-4 py-2 shadow-sm border ${isDarkMode ? 'bg-[#14221f] border-red-905/50' : 'bg-white border-red-200'}`}>
-               <div className="w-2 h-2 bg-red-500 rounded-full mr-3 animate-pulse" />
-               <span className="text-red-500 font-bold text-sm flex-1 tracking-tight">
-                 Recording... {formatRecordingTime(recordingTime)}
+            <div className={`flex-1 rounded-full flex items-center px-4 py-2 shadow-sm border ${isDarkMode ? 'bg-[#14221f] border-red-500/30' : 'bg-white border-red-200'}`}>
+               <div className="w-2.5 h-2.5 bg-red-500 rounded-full mr-3 animate-pulse" />
+               <span className="text-red-500 font-bold text-sm flex-1 tracking-tight flex items-center gap-1.5">
+                 <span>🎙️ Recording...</span>
+                 <span className="font-mono">{formatRecordingTime(recordingTime)}</span>
                </span>
-               <div className="flex gap-2">
-                 <button type="button" onClick={cancelRecording} className="p-2 text-gray-400 hover:text-gray-600 transition">
-                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+               <div className="flex items-center gap-2">
+                 <button type="button" onClick={cancelRecording} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50/10 transition" title="Cancel recording">
+                   Cancel
                  </button>
-                 <button type="button" onClick={stopRecording} className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition shadow-md">
-                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+                 <button type="button" onClick={stopRecording} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md transition active:scale-95" title="Stop & Send voice note">
+                   <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+                   <span>Send</span>
                  </button>
                </div>
             </div>
@@ -897,6 +1055,29 @@ export default function Chat() {
                 </button>
               )}
               
+              <button 
+                type="button" 
+                onClick={() => fileInputRef.current?.click()} 
+                disabled={isUploadingFile}
+                className={`p-2.5 transition ${isDarkMode ? 'text-teal-400 hover:text-teal-300' : 'text-gray-400 hover:text-[#0d6b5e]'}`}
+                title="Attach photo or document"
+              >
+                {isUploadingFile ? (
+                  <span className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin inline-block" />
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                )}
+              </button>
+              <input 
+                ref={fileInputRef} 
+                type="file" 
+                onChange={handleFileUpload} 
+                accept="image/*,.pdf,.doc,.docx,.txt" 
+                className="hidden" 
+              />
+
               <button type="button" onClick={startRecording} className={`p-2.5 transition ${isDarkMode ? 'text-teal-400 hover:text-teal-300' : 'text-gray-400 hover:text-[#0d6b5e]'}`}>
                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
               </button>
@@ -904,10 +1085,18 @@ export default function Chat() {
           )}
 
           {!isBlockedByMe && !isBlockingMe && (
-            <button type="submit" disabled={!text.trim()}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md ${text.trim() ? 'bg-[#0d6b5e] scale-100' : (isDarkMode ? 'bg-[#1a2d29] scale-90' : 'bg-gray-400 scale-90')}`}>
-              <svg className="w-5 h-5 text-white transform rotate-90 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
-            </button>
+            isRecording ? (
+              <button type="button" onClick={stopRecording}
+                className="w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md bg-emerald-600 hover:bg-emerald-700 text-white scale-100 active:scale-95 animate-pulse"
+                title="Stop & Send Voice Note">
+                <svg className="w-5 h-5 text-white transform rotate-90 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+              </button>
+            ) : (
+              <button type="submit" disabled={!text.trim()}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-md ${text.trim() ? 'bg-[#0d6b5e] scale-100' : (isDarkMode ? 'bg-[#1a2d29] scale-90' : 'bg-gray-400 scale-90')}`}>
+                <svg className="w-5 h-5 text-white transform rotate-90 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+              </button>
+            )
           )}
         </form>
       </div>
