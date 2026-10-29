@@ -112,12 +112,7 @@ router.get('/pending', authMiddleware, async (req, res) => {
       receiver: req.user._id,
       status: 'PENDING'
     }).populate('sender');
-        const formatted = requests.map(r => {
-      const obj = r.toJSON ? r.toJSON() : r.toObject ? r.toObject() : r;
-      obj.id = (r._id || r.id).toString();
-      return obj;
-    });
-    res.json(formatted);
+    res.json(requests);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -132,12 +127,7 @@ router.get('/', authMiddleware, async (req, res) => {
         { receiver: req.user._id, status: 'ACCEPTED' }
       ]
     }).populate('sender').populate('receiver');
-        const formatted = requests.map(r => {
-      const obj = r.toJSON ? r.toJSON() : r.toObject ? r.toObject() : r;
-      obj.id = (r._id || r.id).toString();
-      return obj;
-    });
-    res.json(formatted);
+    res.json(requests);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -147,16 +137,12 @@ router.get('/', authMiddleware, async (req, res) => {
 router.patch('/:requestId', authMiddleware, async (req, res) => {
   try {
     const { action } = req.body;
-    const request = await ConnectionRequest.findOne({ _id: req.params.requestId }).populate('sender');
+    const request = await ConnectionRequest.findById(req.params.requestId).populate('sender');
     if (!request) {
       return res.status(404).json({ error: 'Request not found' });
     }
 
-    const receiverId = (request.receiver._id || request.receiver).toString();
-    const senderId = (request.sender._id || request.sender).toString();
-    const myId = req.user._id.toString();
-
-    if (receiverId !== myId && senderId !== myId) {
+    if (request.receiver.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Not authorized to respond to this request' });
     }
 

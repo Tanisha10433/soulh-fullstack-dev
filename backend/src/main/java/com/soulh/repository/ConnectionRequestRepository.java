@@ -19,12 +19,10 @@ public interface ConnectionRequestRepository extends org.springframework.data.mo
     List<ConnectionRequest> findBySenderAndStatusOrReceiverAndStatus(User sender, RequestStatus status1, User receiver, RequestStatus status2);
     List<ConnectionRequest> findBySenderOrReceiver(User sender, User receiver);
 
-    List<ConnectionRequest> findByReceiverAndStatus(User receiver, RequestStatus status);
-
     default List<ConnectionRequest> findPendingForUser(String userId, RequestStatus status) {
         User user = new User();
         user.setId(userId);
-        return findByReceiverAndStatus(user, status);
+        return findBySenderAndStatusOrReceiverAndStatus(user, status, user, status);
     }
 
     default List<ConnectionRequest> findAcceptedForUser(String userId, RequestStatus status) {
