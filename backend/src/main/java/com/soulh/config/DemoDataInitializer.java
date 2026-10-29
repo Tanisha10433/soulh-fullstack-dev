@@ -159,18 +159,6 @@ public class DemoDataInitializer implements ApplicationRunner {
                 .publications(List.of("“Advances in Endometriosis Treatment” – 2022", "“Chronic Pelvic Pain Management” – 2021"))
                 .isPublicProfile(true).isVerified(true).build());
 
-        // Requested specific demo doctor
-        userRepo.save(User.builder()
-                .name("Dr. Fatima Ali").email("doctor@soulh.com").password(passwordEncoder.encode("123456"))
-                .role(Role.DOCTOR).illnessCondition("Endometriosis Specialist")
-                .experience(12).qualification("MBBS, MD (Gynecology)")
-                .hospital("Apollo Hospitals")
-                .bio("Dr. Fatima Ali is a chronic illness specialist focusing on endometriosis, pelvic pain, and women's health. She has helped hundreds of patients manage long-term conditions with personalized care.")
-                .expertiseAreas(List.of("Endometriosis management", "Chronic pelvic pain", "PCOS", "Hormonal disorders"))
-                .awards(List.of("Best Gynecologist Award – 2021", "Excellence in Women’s Health – 2020"))
-                .publications(List.of("“Advances in Endometriosis Treatment” – 2022", "“Chronic Pelvic Pain Management” – 2021"))
-                .isPublicProfile(true).isVerified(true).build());
-
         // ── Admins ──────────────────────────────────────────────────
         User admin = userRepo.save(User.builder()
                 .name("SoulH Admin").email("admin@soulh.demo").password(demoPass)

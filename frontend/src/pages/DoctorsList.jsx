@@ -17,7 +17,13 @@ export default function DoctorsList() {
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     api.get('/api/users/doctors')
-      .then(r => setDoctors(r.data))
+      .then(r => {
+        // Deduplicate doctors by name (removes any duplicate seed instances)
+        const unique = (r.data || []).filter((doc, idx, arr) =>
+          idx === arr.findIndex(d => d.name?.trim().toLowerCase() === doc.name?.trim().toLowerCase())
+        );
+        setDoctors(unique);
+      })
       .catch(() => setDoctors([]))
       .finally(() => setLoading(false));
   }, [user, navigate]);
