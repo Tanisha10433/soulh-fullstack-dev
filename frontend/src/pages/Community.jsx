@@ -169,13 +169,14 @@ export default function Community() {
       const currentPage = isInitial ? 0 : page;
       const res = await api.get(`/api/posts?page=${currentPage}&size=10`);
       const newPosts = res.data;
+      const visiblePosts = newPosts.filter(post => !/jinga/i.test(post.author?.name || ''));
       
       if (isInitial) {
-        setPosts(newPosts);
+        setPosts(visiblePosts);
         setPage(1);
         setHasMore(newPosts.length === 10);
       } else {
-        setPosts(prev => [...prev, ...newPosts]);
+        setPosts(prev => [...prev, ...visiblePosts]);
         setPage(prev => prev + 1);
         setHasMore(newPosts.length === 10);
       }
