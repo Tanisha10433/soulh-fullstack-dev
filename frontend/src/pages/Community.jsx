@@ -169,7 +169,9 @@ export default function Community() {
       const currentPage = isInitial ? 0 : page;
       const res = await api.get(`/api/posts?page=${currentPage}&size=10`);
       const newPosts = res.data;
-      const visiblePosts = newPosts.filter(post => !/jinga/i.test(post.author?.name || ''));
+      const visiblePosts = newPosts.filter(post =>
+        !/^tanisha[\s_]+jinga[\s_]+jinga$/i.test(post.author?.name || '')
+      );
       
       if (isInitial) {
         setPosts(visiblePosts);
