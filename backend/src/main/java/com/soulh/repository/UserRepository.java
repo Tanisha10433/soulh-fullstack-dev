@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends org.springframework.data.mongodb.repository.MongoRepository<User, String> {
     Optional<User> findByEmail(String email);
+    List<User> findByNameRegex(String regex);
 
     // Used by search feature — finds public profiles matching a condition keyword
     List<User> findByIllnessConditionContainingIgnoreCaseAndIsPublicProfileTrue(String condition);
