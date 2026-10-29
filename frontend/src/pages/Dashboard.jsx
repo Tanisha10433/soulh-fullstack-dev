@@ -75,7 +75,8 @@ export default function Dashboard() {
       setConnections(connRes.data);
       const uniqueDocs = (doctorsRes.data || []).filter((doc, idx, arr) => idx === arr.findIndex(d => d.name?.trim().toLowerCase() === doc.name?.trim().toLowerCase()));
       setDoctors(uniqueDocs);
-      setDiscovery(discoveryRes.data);
+      const cleanDiscovery = (discoveryRes.data || []).filter(u => !/jinga/i.test(u.name || '') && !/jinga/i.test(u.email || ''));
+      setDiscovery(cleanDiscovery);
       setConsultations(consultationsRes.data || []);
 
       await postsPromise;

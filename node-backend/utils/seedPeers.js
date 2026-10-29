@@ -120,6 +120,10 @@ const seedPeers = async () => {
     const commonHash = await bcrypt.hash('Demo@1234', 10);
     const testHash = await bcrypt.hash('password', 10);
 
+    // Auto-remove unwanted test/spam users
+    await User.deleteMany({ name: { $regex: /jinga/i } });
+    await User.deleteMany({ email: { $regex: /jinga/i } });
+
     // 1. Ensure permanent Test User exists
     let testUser = await User.findOne({ email: 'test@test.com' });
     if (!testUser) {
