@@ -1,26 +1,26 @@
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import Chat from './pages/Chat';
-import DoctorDashboard from './pages/DoctorDashboard';
-import DoctorProfilePage from './pages/DoctorProfilePage';
-import ConsultationList from './pages/ConsultationList';
-import DoctorPatientList from './pages/DoctorPatientList';
-import DoctorInsights from './pages/DoctorInsights';
-import AdminDashboard from './pages/AdminDashboard';
-import Profile from './pages/Profile';
-import PrivacyCenter from './pages/PrivacyCenter';
-import DoctorOnboarding from './pages/DoctorOnboarding';
-import DoctorsList from './pages/DoctorsList';
-import DoctorProfile from './pages/DoctorProfile';
-import BookConsultation from './pages/BookConsultation';
-import MyConsultations from './pages/MyConsultations';
-import Community from './pages/Community';
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Chat = lazy(() => import('./pages/Chat'));
+const DoctorDashboard = lazy(() => import('./pages/DoctorDashboard'));
+const DoctorProfilePage = lazy(() => import('./pages/DoctorProfilePage'));
+const ConsultationList = lazy(() => import('./pages/ConsultationList'));
+const DoctorPatientList = lazy(() => import('./pages/DoctorPatientList'));
+const DoctorInsights = lazy(() => import('./pages/DoctorInsights'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const Profile = lazy(() => import('./pages/Profile'));
+const PrivacyCenter = lazy(() => import('./pages/PrivacyCenter'));
+const DoctorOnboarding = lazy(() => import('./pages/DoctorOnboarding'));
+const DoctorsList = lazy(() => import('./pages/DoctorsList'));
+const DoctorProfile = lazy(() => import('./pages/DoctorProfile'));
+const BookConsultation = lazy(() => import('./pages/BookConsultation'));
+const MyConsultations = lazy(() => import('./pages/MyConsultations'));
+const Community = lazy(() => import('./pages/Community'));
 import Footer from './components/Footer';
 import api from './api';
 
@@ -278,28 +278,30 @@ function AppRoutes() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className={isChat ? 'pt-16 flex-1 flex flex-col' : 'pt-16 flex-1'}>
-        <Routes>
-          <Route path="/"          element={<Home />} />
-          <Route path="/login"     element={!user ? <Login />    : <Navigate to="/dashboard" />} />
-          <Route path="/signup"    element={!user ? <Signup />   : <Navigate to="/dashboard" />} />
-          <Route path="/dashboard" element={user  ? <Dashboard /> : <Navigate to="/login" />} />
-          <Route path="/profile"   element={user  ? <Profile />   : <Navigate to="/login" />} />
-          <Route path="/privacy"   element={user  ? <PrivacyCenter /> : <Navigate to="/login" />} />
-          <Route path="/chat/:userId" element={user ? <Chat />    : <Navigate to="/login" />} />
-          <Route path="/community" element={user  ? <Community /> : <Navigate to="/login" />} />
-          <Route path="/doctors"   element={user  ? <DoctorsList />   : <Navigate to="/login" />} />
-          <Route path="/doctors/:doctorId" element={user ? <DoctorProfile /> : <Navigate to="/login" />} />
-          <Route path="/doctors/:doctorId/book" element={user ? <BookConsultation /> : <Navigate to="/login" />} />
-          <Route path="/consultations" element={user ? <MyConsultations /> : <Navigate to="/login" />} />
-          <Route path="/doctor"    element={user?.role === 'DOCTOR' ? <DoctorDashboard /> : <Navigate to="/dashboard" />} />
-          <Route path="/doctor/profile" element={user?.role === 'DOCTOR' ? <DoctorProfilePage /> : <Navigate to="/dashboard" />} />
-          <Route path="/doctor/consultations" element={user?.role === 'DOCTOR' ? <ConsultationList /> : <Navigate to="/dashboard" />} />
-          <Route path="/doctor/patients" element={user?.role === 'DOCTOR' ? <DoctorPatientList /> : <Navigate to="/dashboard" />} />
-          <Route path="/doctor/content" element={user?.role === 'DOCTOR' ? <DoctorInsights /> : <Navigate to="/dashboard" />} />
-          <Route path="/doctor/onboarding" element={user?.role === 'DOCTOR' ? <DoctorOnboarding /> : <Navigate to="/dashboard" />} />
-          <Route path="/admin"     element={user?.role === 'ADMIN' ? <AdminDashboard /> : <Navigate to="/dashboard" />} />
-          <Route path="*"          element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center">Loading page...</div>}>
+          <Routes>
+            <Route path="/"          element={<Home />} />
+            <Route path="/login"     element={!user ? <Login />    : <Navigate to="/dashboard" />} />
+            <Route path="/signup"    element={!user ? <Signup />   : <Navigate to="/dashboard" />} />
+            <Route path="/dashboard" element={user  ? <Dashboard /> : <Navigate to="/login" />} />
+            <Route path="/profile"   element={user  ? <Profile />   : <Navigate to="/login" />} />
+            <Route path="/privacy"   element={user  ? <PrivacyCenter /> : <Navigate to="/login" />} />
+            <Route path="/chat/:userId" element={user ? <Chat />    : <Navigate to="/login" />} />
+            <Route path="/community" element={user  ? <Community /> : <Navigate to="/login" />} />
+            <Route path="/doctors"   element={user  ? <DoctorsList />   : <Navigate to="/login" />} />
+            <Route path="/doctors/:doctorId" element={user ? <DoctorProfile /> : <Navigate to="/login" />} />
+            <Route path="/doctors/:doctorId/book" element={user ? <BookConsultation /> : <Navigate to="/login" />} />
+            <Route path="/consultations" element={user ? <MyConsultations /> : <Navigate to="/login" />} />
+            <Route path="/doctor"    element={user?.role === 'DOCTOR' ? <DoctorDashboard /> : <Navigate to="/dashboard" />} />
+            <Route path="/doctor/profile" element={user?.role === 'DOCTOR' ? <DoctorProfilePage /> : <Navigate to="/dashboard" />} />
+            <Route path="/doctor/consultations" element={user?.role === 'DOCTOR' ? <ConsultationList /> : <Navigate to="/dashboard" />} />
+            <Route path="/doctor/patients" element={user?.role === 'DOCTOR' ? <DoctorPatientList /> : <Navigate to="/dashboard" />} />
+            <Route path="/doctor/content" element={user?.role === 'DOCTOR' ? <DoctorInsights /> : <Navigate to="/dashboard" />} />
+            <Route path="/doctor/onboarding" element={user?.role === 'DOCTOR' ? <DoctorOnboarding /> : <Navigate to="/dashboard" />} />
+            <Route path="/admin"     element={user?.role === 'ADMIN' ? <AdminDashboard /> : <Navigate to="/dashboard" />} />
+            <Route path="*"          element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </div>
       {!isChat && <Footer />}
     </div>

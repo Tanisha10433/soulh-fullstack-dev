@@ -3,58 +3,8 @@ const router = express.Router();
 const Community = require('../models/Community');
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
-const User = require('../models/User');
+const { mapPostToDTO, mapPostsToDTO } = require('../utils/postDto');
 const authMiddleware = require('../middleware/authMiddleware');
-
-// Helper: Map Post to DTO
-const mapPostToDTO = async (post) => {
-  const author = await User.findById(post.authorId);
-  
-  let authorDTO;
-  if (post.isAnonymous) {
-    authorDTO = {
-      name: 'Anonymous Warrior',
-      isVerified: false,
-      role: 'USER'
-    };
-  } else if (author) {
-    authorDTO = {
-      id: author._id.toString(),
-      name: author.name || author.email.split('@')[0],
-      illnessCondition: author.illnessCondition,
-      isVerified: author.isVerified,
-      role: author.role
-    };
-  } else {
-    authorDTO = { name: 'Unknown' };
-  }
-
-  const likes = [];
-  if (post.likeUserIds && post.likeUserIds.length > 0) {
-    for (const uid of post.likeUserIds) {
-      const u = await User.findById(uid);
-      if (u) {
-        likes.push({
-          id: u._id.toString(),
-          name: u.name || u.email.split('@')[0]
-        });
-      }
-    }
-  }
-
-  return {
-    id: post._id.toString(),
-    communityId: post.communityId,
-    author: authorDTO,
-    content: post.content,
-    illnessTag: post.illnessTag,
-    imageUrl: post.imageUrl,
-    fileUrl: post.fileUrl,
-    isAnonymous: post.isAnonymous,
-    createdAt: post.createdAt,
-    likes: likes
-  };
-};
 
 // --- COMMUNITY ENDPOINTS (/api/communities) ---
 
@@ -74,13 +24,18 @@ router.get('/feed', authMiddleware, async (req, res) => {
     const joinedCommunities = await Community.find({ members: req.user._id });
     const communityIds = joinedCommunities.map(c => c._id.toString());
     
-    const posts = await Post.find({ communityId: { $in: communityIds } }).sort({ createdAt: -1 });
-    
-    const result = [];
-    for (const p of posts) {
-      result.push(await mapPostToDTO(p));
+    const page = Number(req.query.page ?? 0);
+    const size = Number(req.query.size ?? 10);
+    if (!Number.isInteger(page) || !Number.isInteger(size) || page < 0 || size < 1 || size > 50) {
+      return res.status(400).json({ error: 'page must be non-negative and size must be between 1 and 50' });
     }
-    res.json(result);
+
+    const posts = await Post.find({ communityId: { $in: communityIds } })
+      .sort({ createdAt: -1 })
+      .skip(page * size)
+      .limit(size)
+      .lean();
+    res.json(await mapPostsToDTO(posts));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -102,12 +57,18 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Get posts for community
 router.get('/:id/posts', authMiddleware, async (req, res) => {
   try {
-    const posts = await Post.find({ communityId: req.params.id }).sort({ createdAt: -1 });
-    const result = [];
-    for (const p of posts) {
-      result.push(await mapPostToDTO(p));
+    const page = Number(req.query.page ?? 0);
+    const size = Number(req.query.size ?? 10);
+    if (!Number.isInteger(page) || !Number.isInteger(size) || page < 0 || size < 1 || size > 50) {
+      return res.status(400).json({ error: 'page must be non-negative and size must be between 1 and 50' });
     }
-    res.json(result);
+
+    const posts = await Post.find({ communityId: req.params.id })
+      .sort({ createdAt: -1 })
+      .skip(page * size)
+      .limit(size)
+      .lean();
+    res.json(await mapPostsToDTO(posts));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -170,20 +131,18 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
 // Get paginated posts feed
 router.get('/posts/feed/all', authMiddleware, async (req, res) => {
   try {
-    let { page = 0, size = 10 } = req.query;
-    page = parseInt(page);
-    size = parseInt(size);
+    const page = Number(req.query.page ?? 0);
+    const size = Number(req.query.size ?? 10);
+    if (!Number.isInteger(page) || !Number.isInteger(size) || page < 0 || size < 1 || size > 50) {
+      return res.status(400).json({ error: 'page must be non-negative and size must be between 1 and 50' });
+    }
 
     const posts = await Post.find()
       .sort({ createdAt: -1 })
       .skip(page * size)
-      .limit(size);
-
-    const result = [];
-    for (const p of posts) {
-      result.push(await mapPostToDTO(p));
-    }
-    res.json(result);
+      .limit(size)
+      .lean();
+    res.json(await mapPostsToDTO(posts));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
