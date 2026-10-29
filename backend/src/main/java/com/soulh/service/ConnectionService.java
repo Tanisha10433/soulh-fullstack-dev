@@ -84,7 +84,9 @@ public class ConnectionService {
     public ConnectionRequest respond(String requestId, User me, String action) {
         ConnectionRequest req = connectionRepo.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
-        if (!req.getReceiver().getId().equals(me.getId()))
+        boolean isReceiver = req.getReceiver() != null && req.getReceiver().getId().equals(me.getId());
+        boolean isSender = req.getSender() != null && req.getSender().getId().equals(me.getId());
+        if (!isReceiver && !isSender)
             throw new RuntimeException("Not authorized to respond to this request");
         
         boolean isAccept = "ACCEPT".equalsIgnoreCase(action);

@@ -152,7 +152,11 @@ router.patch('/:requestId', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Request not found' });
     }
 
-    if (request.receiver.toString() !== req.user._id.toString()) {
+    const receiverId = (request.receiver._id || request.receiver).toString();
+    const senderId = (request.sender._id || request.sender).toString();
+    const myId = req.user._id.toString();
+
+    if (receiverId !== myId && senderId !== myId) {
       return res.status(403).json({ error: 'Not authorized to respond to this request' });
     }
 
