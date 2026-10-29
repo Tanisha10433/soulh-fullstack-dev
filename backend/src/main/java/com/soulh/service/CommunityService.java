@@ -12,12 +12,6 @@ import org.springframework.stereotype.Service;
 
 import com.soulh.dto.PostResponseDTO;
 import com.soulh.dto.UserDTO;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.List;
 
@@ -56,24 +50,26 @@ public class CommunityService {
         if (!removed) {
             post.getLikeUserIds().add(user.getId());
         }
-        return mapPostsToDTO(List.of(postRepository.save(post))).get(0);
+        return mapPostToDTO(postRepository.save(post));
     }
 
     public List<PostResponseDTO> getJoinedFeed(User user) {
         List<String> communityIds = communityRepository.findByMembersContaining(user)
                 .stream().map(Community::getId).toList();
-        return mapPostsToDTO(postRepository.findByCommunityIdInOrderByCreatedAtDesc(communityIds));
+        return postRepository.findByCommunityIdInOrderByCreatedAtDesc(communityIds)
+                .stream().map(this::mapPostToDTO).collect(Collectors.toList());
     }
 
     public List<PostResponseDTO> getAllPosts() {
-        return mapPostsToDTO(postRepository.findAll().stream()
+        return postRepository.findAll().stream()
                 .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
-                .collect(Collectors.toList()));
+                .map(this::mapPostToDTO).collect(Collectors.toList());
     }
 
     public List<PostResponseDTO> getPaginatedPosts(int page, int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("createdAt").descending());
-        return mapPostsToDTO(postRepository.findAll(pageable).getContent());
+        return postRepository.findAll(pageable).getContent().stream()
+                .map(this::mapPostToDTO).collect(Collectors.toList());
     }
 
     public PostResponseDTO createPost(String communityId, User author, String content, String imageUrl, String fileUrl, String illnessTag, boolean isAnonymous) {
@@ -87,12 +83,12 @@ public class CommunityService {
                 .isAnonymous(isAnonymous)
                 .createdAt(java.time.LocalDateTime.now())
                 .build();
-        return mapPostsToDTO(List.of(postRepository.save(post))).get(0);
+        return mapPostToDTO(postRepository.save(post));
     }
 
-    public List<PostResponseDTO> getCommunityPosts(String communityId, int page, int size) {
-        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return mapPostsToDTO(postRepository.findByCommunityId(communityId, pageable));
+    public List<PostResponseDTO> getCommunityPosts(String communityId) {
+        return postRepository.findByCommunityIdOrderByCreatedAtDesc(communityId)
+                .stream().map(this::mapPostToDTO).collect(Collectors.toList());
     }
 
     public Comment addComment(String postId, User author, String content) {
@@ -116,7 +112,7 @@ public class CommunityService {
             throw new RuntimeException("You can only edit your own posts");
         }
         post.setContent(newContent);
-        return mapPostsToDTO(List.of(postRepository.save(post))).get(0);
+        return mapPostToDTO(postRepository.save(post));
     }
 
     public void deletePost(String postId, String userId) {
@@ -128,29 +124,8 @@ public class CommunityService {
         postRepository.deleteById(postId);
     }
 
-    private List<PostResponseDTO> mapPostsToDTO(List<Post> posts) {
-        Set<String> userIds = new HashSet<>();
-        for (Post post : posts) {
-            if (!post.isAnonymous() && post.getAuthorId() != null) {
-                userIds.add(post.getAuthorId());
-            }
-            if (post.getLikeUserIds() != null) {
-                userIds.addAll(post.getLikeUserIds());
-            }
-        }
-
-        Map<String, User> usersById = new HashMap<>();
-        if (!userIds.isEmpty()) {
-            userRepository.findAllById(userIds).forEach(user -> usersById.put(user.getId(), user));
-        }
-
-        return posts.stream()
-                .map(post -> mapPostToDTO(post, usersById))
-                .collect(Collectors.toList());
-    }
-
-    private PostResponseDTO mapPostToDTO(Post post, Map<String, User> usersById) {
-        User author = usersById.get(post.getAuthorId());
+    private PostResponseDTO mapPostToDTO(Post post) {
+        User author = userRepository.findById(post.getAuthorId()).orElse(null);
         
         UserDTO authorDTO;
         if (post.isAnonymous()) {
@@ -172,8 +147,8 @@ public class CommunityService {
         }
 
         List<UserDTO> likes = post.getLikeUserIds() != null ? post.getLikeUserIds().stream()
-                .map(usersById::get)
-                .filter(java.util.Objects::nonNull)
+                .map(id -> userRepository.findById(id).orElse(null))
+                .filter(u -> u != null)
                 .map(u -> UserDTO.builder()
                         .id(u.getId())
                         .name(u.getName())

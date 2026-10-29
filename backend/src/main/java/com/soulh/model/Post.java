@@ -10,9 +10,6 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Document(collection = "posts")
-@org.springframework.data.mongodb.core.index.CompoundIndex(
-        name = "community_created_at_idx",
-        def = "{'communityId': 1, 'createdAt': -1}")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
