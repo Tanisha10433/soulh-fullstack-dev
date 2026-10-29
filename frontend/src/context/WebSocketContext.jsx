@@ -27,7 +27,9 @@ export const WebSocketProvider = ({ children }) => {
     const client = new Client({
       // SockJS factory — recreated on each reconnect attempt
       webSocketFactory: () => new SockJS(`${apiBaseURL}/ws`),
-      reconnectDelay: 5000,
+      reconnectDelay: 2000, // Faster reconnect (was 5000ms)
+      heartbeatIncoming: 10000, // Keep connection alive — detect drops in 10s
+      heartbeatOutgoing: 10000,
 
       // Pass JWT in STOMP CONNECT frame so Spring Security accepts it
       connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},

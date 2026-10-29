@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: soulh-node-backend
+    runtime: node
+    rootDir: node-backend
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8081
+      - key: MONGODB_URI
+        sync: false   # <-- Render dashboard mein manually set karna
+      - key: APP_JWT_SECRET
+        sync: false   # <-- Render dashboard mein manually set karna
+      - key: NODE_ENV
+        value: production

@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
+const compression = require('compression');
 const connectDB = require('./config/db');
 const setupWebSocket = require('./utils/websocket');
 const seedPeers = require('./utils/seedPeers');
@@ -31,6 +32,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.use(compression()); // Gzip all responses — reduces payload size significantly
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -48,6 +50,12 @@ app.use('/api', consultationRoutes); // Mounts /api/doctors/verified, /api/avail
 // Default API route
 app.get('/', (req, res) => {
   res.json({ message: 'SoulH Node.js Backend API is running' });
+});
+
+// Keep-alive ping endpoint — prevents Render free tier cold starts
+// Frontend pings this every 14 minutes to keep the server warm
+app.get('/ping', (req, res) => {
+  res.status(200).json({ status: 'ok', ts: Date.now() });
 });
 
 // Setup WebSocket Server (SockJS + STOMP)
