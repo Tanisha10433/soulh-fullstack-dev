@@ -32,8 +32,14 @@ public class CommunityController {
     }
 
     @GetMapping("/{id}/posts")
-    public ResponseEntity<?> getPosts(@PathVariable String id) {
-        return ResponseEntity.ok(communityService.getCommunityPosts(id));
+    public ResponseEntity<?> getPosts(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        if (page < 0 || size < 1 || size > 50) {
+            return ResponseEntity.badRequest().body(Map.of("error", "page must be non-negative and size must be between 1 and 50"));
+        }
+        return ResponseEntity.ok(communityService.getCommunityPosts(id, page, size));
     }
 
     @PostMapping("/{id}/posts")

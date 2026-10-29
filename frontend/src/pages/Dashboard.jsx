@@ -32,6 +32,9 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('feed');
   const [respondingReq, setRespondingReq] = useState({});
   const [posts, setPosts] = useState([]);
+  const [postPage, setPostPage] = useState(0);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
   const [isAnonymousPost, setIsAnonymousPost] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -48,29 +51,33 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [profileRes, pendingRes, connRes, doctorsRes, discoveryRes, consultationsRes] = await Promise.all([
-        api.get('/api/users/me'),
+      const postsPromise = api.get('/api/communities/1/posts?page=0&size=10')
+        .then(({ data }) => {
+          setPosts(data);
+          setPostPage(0);
+          setHasMorePosts(data.length === 10);
+        })
+        .catch(() => {
+          console.log("No community found or posts yet.");
+        });
+
+      const [pendingRes, connRes, doctorsRes, discoveryRes, consultationsRes] = await Promise.all([
         api.get('/api/connections/pending'),
         api.get('/api/connections'),
         api.get('/api/users/doctors'),
         api.get('/api/users/discover'),
         api.get('/api/consultations/my')
       ]);
-      setProfile(profileRes.data);
-      setCondition(profileRes.data.illnessCondition || '');
-      setIsPublic(profileRes.data.publicProfile);
+      setProfile(user);
+      setCondition(user.illnessCondition || '');
+      setIsPublic(user.publicProfile);
       setPendingRequests(pendingRes.data);
       setConnections(connRes.data);
       setDoctors(doctorsRes.data);
       setDiscovery(discoveryRes.data);
       setConsultations(consultationsRes.data || []);
 
-      try {
-        const postsRes = await api.get('/api/communities/1/posts');
-        setPosts(postsRes.data);
-      } catch (e) {
-        console.log("No community found or posts yet.");
-      }
+      await postsPromise;
     } catch (err) {
       console.error("Dashboard loadData error:", err);
       if (err.response?.status === 401) {
@@ -86,6 +93,22 @@ export default function Dashboard() {
     loaded.current = true;
     loadData();
   }, [user]);
+
+  const loadMorePosts = async () => {
+    if (loadingMorePosts || !hasMorePosts) return;
+    setLoadingMorePosts(true);
+    try {
+      const nextPage = postPage + 1;
+      const { data } = await api.get(`/api/communities/1/posts?page=${nextPage}&size=10`);
+      setPosts(prev => [...prev, ...data]);
+      setPostPage(nextPage);
+      setHasMorePosts(data.length === 10);
+    } catch (err) {
+      console.error('Failed to load more community posts:', err);
+    } finally {
+      setLoadingMorePosts(false);
+    }
+  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -552,6 +575,17 @@ export default function Dashboard() {
                     );
                   })}
                 </div>
+                {hasMorePosts && (
+                  <button
+                    type="button"
+                    onClick={loadMorePosts}
+                    disabled={loadingMorePosts}
+                    className="w-full mt-3 py-2 text-sm font-semibold rounded-xl"
+                    style={{ color: '#0d6b5e', background: 'rgba(13,107,94,0.07)' }}
+                  >
+                    {loadingMorePosts ? 'Loading...' : 'Load more posts'}
+                  </button>
+                )}
               </div>
             )}
 
