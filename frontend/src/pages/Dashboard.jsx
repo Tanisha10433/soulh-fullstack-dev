@@ -39,7 +39,7 @@ export default function Dashboard() {
   const [isAnonymousPost, setIsAnonymousPost] = useState(false);
   const [posting, setPosting] = useState(false);
 
-  // â”€â”€ Feed handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€actions
+  // ── Feed handlers ───────────────────────────────────────────────actions
   const [editingPostId, setEditingPostId] = useState(null);
   const [editContent, setEditContent] = useState('');
   const [expandedComments, setExpandedComments] = useState({});
@@ -138,7 +138,7 @@ export default function Dashboard() {
     try {
       await api.patch(`/api/connections/${requestId}`, { action });
       await loadData();
-      addToast(action === 'ACCEPT' ? 'Connection accepted! ðŸŽ‰' : 'Request rejected.', action === 'ACCEPT' ? 'success' : 'info');
+      addToast(action === 'ACCEPT' ? 'Connection accepted! 🎉' : 'Request rejected.', action === 'ACCEPT' ? 'success' : 'info');
     } catch {
       addToast('Action failed. Please try again.', 'error');
     } finally {
@@ -166,7 +166,7 @@ export default function Dashboard() {
       setPosts(prev => [res.data, ...prev]);
       setNewPostContent('');
       setIsAnonymousPost(false);
-      addToast('Posted! ðŸŒ±', 'success');
+      addToast('Posted! 🌱', 'success');
     } catch { addToast('Failed to post', 'error'); }
     finally { setPosting(false); }
   };
@@ -289,22 +289,22 @@ export default function Dashboard() {
               {profile.name[0].toUpperCase()}
             </div>
             <div>
-              <h1 className="text-2xl font-black" style={{ color: 'var(--text-main)' }}>Hey, {profile.name.split(' ')[0]} ðŸ‘‹</h1>
+              <h1 className="text-2xl font-black" style={{ color: 'var(--text-main)' }}>Hey, {profile.name.split(' ')[0]} 👋</h1>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Welcome to your SoulH dashboard</p>
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <span className={`badge ${isPublic ? 'badge-green' : 'badge-indigo'}`}>
-              {isPublic ? 'ðŸŒ Public' : 'ðŸ”’ Private'}
+              {isPublic ? '🌍 Public' : '🔒 Private'}
             </span>
             {profile.role === 'DOCTOR' && (
               <Link to="/doctor" className="badge badge-teal cursor-pointer hover:opacity-80 transition">
-                ðŸŒ¿ Expert Portal
+                🌿 Expert Portal
               </Link>
             )}
             {pendingRequests.length > 0 && (
               <button onClick={() => setActiveTab('pending')} className="badge badge-red cursor-pointer animate-pulse">
-                ðŸ”” {pendingRequests.length} Request{pendingRequests.length > 1 ? 's' : ''}
+                🔔 {pendingRequests.length} Request{pendingRequests.length > 1 ? 's' : ''}
               </button>
             )}
           </div>
@@ -313,10 +313,10 @@ export default function Dashboard() {
         {/* Wellness Stats Widget */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Connections', value: connections.length, icon: 'ðŸ‘¥', color: '#0d6b5e' },
-            { label: 'Posts Shared', value: posts.filter(p => p.author?.id === profile.id).length, icon: 'âœï¸', color: '#0f8b7a' },
-            { label: 'Consultations', value: profile.consultationsBooked || 0, icon: 'ðŸ“…', color: '#14b8a6' },
-            { label: 'Days Active', value: Math.floor((Date.now() - new Date(profile.createdAt || Date.now())) / (1000 * 60 * 60 * 24)) + 1, icon: 'âœ¨', color: '#e8776a' },
+            { label: 'Connections', value: connections.length, icon: '👥', color: '#0d6b5e' },
+            { label: 'Posts Shared', value: posts.filter(p => p.author?.id === profile.id).length, icon: '✍️', color: '#0f8b7a' },
+            { label: 'Consultations', value: profile.consultationsBooked || 0, icon: '📅', color: '#14b8a6' },
+            { label: 'Days Active', value: Math.floor((Date.now() - new Date(profile.createdAt || Date.now())) / (1000 * 60 * 60 * 24)) + 1, icon: '✨', color: '#e8776a' },
           ].map(s => (
             <div key={s.label} className="glass p-4 flex flex-col items-center justify-center text-center group hover:-translate-y-1 transition duration-300">
               <span className="text-2xl mb-1 group-hover:scale-125 transition">{s.icon}</span>
@@ -331,7 +331,7 @@ export default function Dashboard() {
           {/* Health Profile Card */}
           <div className="glass p-7 space-y-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(13,107,94,0.1)' }}>ðŸ¥</div>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(13,107,94,0.1)' }}>🏥</div>
               <h2 className="text-xl font-bold" style={{ color: 'var(--text-main)' }}>My Health Profile</h2>
             </div>
             <div>
@@ -371,7 +371,7 @@ export default function Dashboard() {
               </button>
             </div>
             <button id="save-profile" onClick={saveProfile} disabled={saving} className="btn-primary w-full py-3.5">
-              {saving ? 'Saving...' : saved ? 'âœ… Saved!' : 'Save Profile'}
+              {saving ? 'Saving...' : saved ? '✅ Saved!' : 'Save Profile'}
             </button>
           </div>
 
@@ -380,12 +380,12 @@ export default function Dashboard() {
             {/* Tab Bar */}
             <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(13,107,94,0.06)' }}>
               {[
-                { key: 'feed', label: 'ðŸŒ Community Feed' },
-                { key: 'search', label: 'ðŸ” Search Peers' },
-                { key: 'discovery', label: 'âœ¨ Suggested' },
-                { key: 'doctors', label: 'ðŸ‘¨â€âš•ï¸ Doctors' },
-                { key: 'pending', label: `ðŸ”” Requests${pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ''}` },
-                { key: 'connections', label: `ðŸ‘¥ Connected${connections.length > 0 ? ` (${connections.length})` : ''}` },
+                { key: 'feed', label: '🌐 Community Feed' },
+                { key: 'search', label: '🔍 Search Peers' },
+                { key: 'discovery', label: '✨ Suggested' },
+                { key: 'doctors', label: '👨‍⚕️ Doctors' },
+                { key: 'pending', label: `🔔 Requests${pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ''}` },
+                { key: 'connections', label: `👥 Connected${connections.length > 0 ? ` (${connections.length})` : ''}` },
               ].map(t => (
                 <button
                   key={t.key}
@@ -407,7 +407,7 @@ export default function Dashboard() {
                   <textarea
                     value={newPostContent}
                     onChange={e => setNewPostContent(e.target.value)}
-                    placeholder="Share your experience, ask a question, or just vent â€” this is your space."
+                    placeholder="Share your experience, ask a question, or just vent — this is your space."
                     className="input-field w-full"
                     style={{ borderRadius: '12px', minHeight: '72px', resize: 'none', fontSize: '13px' }}
                   />
@@ -427,12 +427,12 @@ export default function Dashboard() {
                         }} />
                       </div>
                       <span className="text-xs font-semibold" style={{ color: isDarkMode ? 'var(--text-muted)' : '#4a7060' }}>
-                        {isAnonymousPost ? 'ðŸŽ­ Anonymous' : 'ðŸ‘¤ Public'}
+                        {isAnonymousPost ? '🎭 Anonymous' : '👤 Public'}
                       </span>
                     </label>
                     <button type="submit" disabled={posting || !newPostContent.trim()}
                       className="btn-primary px-5 py-2 text-xs" style={{ borderRadius: '10px', opacity: posting || !newPostContent.trim() ? 0.6 : 1 }}>
-                      {posting ? 'Posting...' : 'âœï¸ Post'}
+                      {posting ? 'Posting...' : '✍️ Post'}
                     </button>
                   </div>
                 </form>
@@ -441,7 +441,7 @@ export default function Dashboard() {
                 <div className="space-y-3" style={{ maxHeight: '520px', overflowY: 'auto', paddingRight: '2px' }}>
                   {posts.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-4xl mb-2">ðŸŒ±</p>
+                      <p className="text-4xl mb-2">🌱</p>
                       <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Be the first to share in the community!</p>
                     </div>
                   ) : posts.map(post => {
@@ -478,7 +478,7 @@ export default function Dashboard() {
                             <div className="flex items-center gap-2">
                               <p className="font-bold text-sm truncate" style={{ color: isDarkMode ? '#f1f5f9' : '#1a3530' }}>
                                 {post.author?.name || 'Unknown'}
-                                {post.author?.verified && <span className="text-teal-600 text-xs ml-1">âœ“</span>}
+                                {post.author?.verified && <span className="text-teal-600 text-xs ml-1">✓</span>}
                               </p>
                               {isAnon && (
                                 <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
@@ -492,10 +492,10 @@ export default function Dashboard() {
                             <div className="flex gap-1 flex-shrink-0">
                               <button onClick={() => { setEditingPostId(post.id); setEditContent(post.content); }}
                                   className={`p-1.5 rounded-lg text-[11px] transition ${isDarkMode ? 'hover:bg-[#253f3a]' : 'hover:bg-teal-50'}`} style={{ color: '#8aada5' }}
-                                title="Edit">âœï¸</button>
+                                title="Edit">✏️</button>
                               <button onClick={() => deletePost(post.id)}
                                   className={`p-1.5 rounded-lg text-[11px] transition ${isDarkMode ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}`} style={{ color: '#8aada5' }}
-                                title="Delete">ðŸ—‘</button>
+                                title="Delete">🗑</button>
                             </div>
                           )}
                         </div>
@@ -526,12 +526,12 @@ export default function Dashboard() {
                               background: likedByMe ? 'rgba(232,119,106,0.1)' : 'transparent',
                               color: likedByMe ? '#e8776a' : '#8aada5',
                             }}>
-                            {likedByMe ? 'â¤ï¸' : 'ðŸ¤'} {likeCount}
+                            {likedByMe ? '❤️' : '🤍'} {likeCount}
                           </button>
                           <button onClick={() => toggleComments(post.id)}
                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition"
                             style={{ color: expandedComments[post.id] ? '#0d6b5e' : '#8aada5' }}>
-                            ðŸ’¬ {expandedComments[post.id] ? 'Hide' : (commentCount > 0 ? commentCount : 'Comment')}
+                            💬 {expandedComments[post.id] ? 'Hide' : (commentCount > 0 ? commentCount : 'Comment')}
                           </button>
                         </div>
 
@@ -595,13 +595,13 @@ export default function Dashboard() {
             {activeTab === 'discovery' && (
               <div className="space-y-3">
                 <div className="p-3 rounded-xl flex items-center gap-3" style={{ background: isDarkMode ? 'rgba(13,107,94,0.15)' : 'rgba(13,107,94,0.06)', border: isDarkMode ? '1px solid rgba(13,107,94,0.3)' : '1px solid rgba(13,107,94,0.1)' }}>
-                  <span className="text-xl">âœ¨</span>
+                  <span className="text-xl">✨</span>
                   <p className="text-xs font-semibold" style={{ color: isDarkMode ? 'var(--text-main)' : '#0d6b5e' }}>People with "{profile.illnessCondition}"</p>
                 </div>
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                   {discovery.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-4xl mb-2">ðŸ”­</p>
+                      <p className="text-4xl mb-2">🔭</p>
                       <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No suggestions yet. Try updating your profile!</p>
                     </div>
                   ) : discovery.map(u => (
@@ -625,7 +625,7 @@ export default function Dashboard() {
                           border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
                         }}
                       >
-                        {sendingReq[u.id] ? '...' : sentReqs[u.id] ? 'âœ“ Sent' : '+ Connect'}
+                        {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
                       </button>
                     </div>
                   ))}
@@ -639,7 +639,7 @@ export default function Dashboard() {
                 {/* Welcome tips for new users */}
                 {connections.length === 0 && !searched && (
                   <div className="p-4 rounded-2xl mb-2" style={{ background: isDarkMode ? 'rgba(13,107,94,0.15)' : 'rgba(13,107,94,0.06)', border: isDarkMode ? '1px solid rgba(13,107,94,0.3)' : '1px solid rgba(13,107,94,0.15)' }}>
-                    <p className="font-bold text-sm mb-2" style={{ color: isDarkMode ? 'var(--text-main)' : '#0d6b5e' }}>ðŸ‘‹ Getting Started with SoulH</p>
+                    <p className="font-bold text-sm mb-2" style={{ color: isDarkMode ? 'var(--text-main)' : '#0d6b5e' }}>👋 Getting Started with SoulH</p>
                     <div className="grid grid-cols-3 gap-2">
                       {[
                         { num: '1', label: 'Search your condition below' },
@@ -677,7 +677,7 @@ export default function Dashboard() {
                         border: `1.5px solid ${filterVerified ? '#0d6b5e' : (isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(13,107,94,0.3)')}`,
                       }}
                     >
-                      {filterVerified && <span className="text-white" style={{ fontSize: '10px', fontWeight: 900 }}>âœ“</span>}
+                      {filterVerified && <span className="text-white" style={{ fontSize: '10px', fontWeight: 900 }}>✓</span>}
                     </div>
                     <span className="text-xs font-semibold" style={{ color: isDarkMode ? 'var(--text-muted)' : '#4a7060' }}>Show verified doctors only</span>
                   </label>
@@ -687,7 +687,7 @@ export default function Dashboard() {
                   {searched ? (
                     searchResults.length === 0 ? (
                       <div className="text-center py-6">
-                        <p className="text-3xl mb-2">ðŸ˜”</p>
+                        <p className="text-3xl mb-2">😔</p>
                         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No{filterVerified ? ' verified' : ''} peers found for "{searchTerm}".</p>
                       </div>
                     ) : (
@@ -698,7 +698,7 @@ export default function Dashboard() {
                           <div key={u.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: isDarkMode ? 'rgba(20,34,31,0.6)' : 'rgba(255,255,255,0.6)', border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(13,107,94,0.1)' }}>
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: 'linear-gradient(135deg, #0d6b5e, #0f8b7a)' }}>
-                                {u.name ? u.name[0].toUpperCase() : 'ðŸ‘¤'}
+                                {u.name ? u.name[0].toUpperCase() : '👤'}
                               </div>
                               <div>
                                 <p className="font-semibold text-sm" style={{ color: 'var(--text-main)' }}>{u.name}</p>
@@ -715,7 +715,7 @@ export default function Dashboard() {
                                 border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
                               }}
                             >
-                              {sendingReq[u.id] ? '...' : sentReqs[u.id] ? 'âœ“ Sent' : '+ Connect'}
+                              {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
                             </button>
                           </div>
                         ))
@@ -727,7 +727,7 @@ export default function Dashboard() {
                       </div>
                       {discovery.length === 0 ? (
                         <div className="text-center py-6">
-                          <p className="text-3xl mb-2">ðŸŒ±</p>
+                          <p className="text-3xl mb-2">🌱</p>
                           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No other peers available yet.</p>
                         </div>
                       ) : (
@@ -737,7 +737,7 @@ export default function Dashboard() {
                             <div key={u.id} className="flex items-center justify-between p-3 rounded-xl mb-2" style={{ background: isDarkMode ? 'rgba(20,34,31,0.6)' : 'rgba(255,255,255,0.6)', border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(13,107,94,0.1)' }}>
                               <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: 'linear-gradient(135deg, #0d6b5e, #0f8b7a)' }}>
-                                  {u.name ? u.name[0].toUpperCase() : 'ðŸ‘¤'}
+                                  {u.name ? u.name[0].toUpperCase() : '👤'}
                                 </div>
                                 <div>
                                   <p className="font-semibold text-sm" style={{ color: 'var(--text-main)' }}>{u.name}</p>
@@ -754,7 +754,7 @@ export default function Dashboard() {
                                   border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
                                 }}
                               >
-                                {sendingReq[u.id] ? '...' : sentReqs[u.id] ? 'âœ“ Sent' : '+ Connect'}
+                                {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
                               </button>
                             </div>
                           ))
@@ -769,7 +769,7 @@ export default function Dashboard() {
             {activeTab === 'pending' && (
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {pendingRequests.length === 0 ? (
-                  <div className="text-center py-8"><p className="text-4xl mb-2">ðŸŽ‰</p><p className="text-sm" style={{ color: '#8aada5' }}>No pending requests.</p></div>
+                  <div className="text-center py-8"><p className="text-4xl mb-2">🎉</p><p className="text-sm" style={{ color: '#8aada5' }}>No pending requests.</p></div>
                 ) : pendingRequests.map(req => (
                   <div key={req.id} className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'rgba(232,119,106,0.05)', border: '1px solid rgba(232,119,106,0.15)' }}>
                     <div className="flex items-center gap-3">
@@ -784,10 +784,10 @@ export default function Dashboard() {
                     <div className="flex gap-2">
                       <button onClick={() => respondToRequest(req.id, 'ACCEPT')} disabled={respondingReq[req.id]}
                         className="text-xs font-bold px-3 py-1.5 rounded-xl"
-                        style={{ background: 'rgba(5,150,105,0.1)', color: '#047857', border: '1px solid rgba(5,150,105,0.22)' }}>âœ“</button>
+                        style={{ background: 'rgba(5,150,105,0.1)', color: '#047857', border: '1px solid rgba(5,150,105,0.22)' }}>✓</button>
                       <button onClick={() => respondToRequest(req.id, 'REJECT')} disabled={respondingReq[req.id]}
                         className="text-xs font-bold px-3 py-1.5 rounded-xl"
-                        style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)' }}>âœ•</button>
+                        style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)' }}>✕</button>
                     </div>
                   </div>
                 ))}
@@ -798,7 +798,7 @@ export default function Dashboard() {
             {activeTab === 'doctors' && (
               <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                 <div className="p-4 rounded-xl mb-3 flex items-center gap-3" style={{ background: isDarkMode ? 'linear-gradient(135deg, rgba(13,107,94,0.2), rgba(15,139,122,0.1))' : 'linear-gradient(135deg, rgba(13,107,94,0.1), rgba(15,139,122,0.05))', border: isDarkMode ? '1px solid rgba(13,107,94,0.3)' : '1px solid rgba(13,107,94,0.2)' }}>
-                  <div className="text-3xl">ðŸ‘¨â€âš•ï¸</div>
+                  <div className="text-3xl">👨‍⚕️</div>
                   <div>
                     <h3 className="font-bold text-sm" style={{ color: 'var(--text-main)' }}>Ask a Doctor</h3>
                     <p className="text-xs" style={{ color: isDarkMode ? 'var(--text-muted)' : '#4a7060' }}>Start a free consultation with verified medical professionals.</p>
@@ -807,7 +807,7 @@ export default function Dashboard() {
 
                 {doctors.length === 0 ? (
                   <div className="text-center py-6">
-                    <p className="text-3xl mb-2">ðŸ§‘â€âš•ï¸</p>
+                    <p className="text-3xl mb-2">🧑‍⚕️</p>
                     <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No verified doctors available right now.</p>
                   </div>
                 ) : (
@@ -824,10 +824,10 @@ export default function Dashboard() {
                               <span className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded w-36 text-center shadow-lg pointer-events-none z-50">
                                 Officially verified medical credentials by SoulH Admins
                               </span>
-                              âœ“ Verified
+                              ✓ Verified
                             </span>
                           </p>
-                          <p className="text-xs font-semibold" style={{ color: '#0d6b5e' }}>{doc.illnessCondition} â€¢ {doc.experience} Yrs</p>
+                          <p className="text-xs font-semibold" style={{ color: '#0d6b5e' }}>{doc.illnessCondition} • {doc.experience} Yrs</p>
                           <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{doc.hospital}</p>
                         </div>
                       </div>
@@ -859,7 +859,7 @@ export default function Dashboard() {
             {activeTab === 'connections' && (
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {connections.length === 0 ? (
-                  <div className="text-center py-8"><p className="text-4xl mb-2">ðŸ¤</p><p className="text-sm" style={{ color: 'var(--text-muted)' }}>No connections yet. Find peers above!</p></div>
+                  <div className="text-center py-8"><p className="text-4xl mb-2">🤝</p><p className="text-sm" style={{ color: 'var(--text-muted)' }}>No connections yet. Find peers above!</p></div>
                 ) : connections.map(conn => {
                   const peer = getPeerFromConn(conn);
                   if (!peer) return null;
@@ -880,7 +880,7 @@ export default function Dashboard() {
                         className="text-xs font-bold px-3 py-1.5 rounded-xl"
                         style={{ background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(13,107,94,0.1)', color: isDarkMode ? 'var(--text-main)' : '#0d6b5e', border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(13,107,94,0.2)' }}
                       >
-                        ðŸ’¬ Chat
+                        💬 Chat
                       </Link>
                     </div>
                   );
@@ -893,10 +893,10 @@ export default function Dashboard() {
         {/* Quick Action Tiles */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { emoji: 'ðŸ‘¨â€âš•ï¸', label: 'Consult Expert', onClick: () => setActiveTab('doctors') },
-            { emoji: 'ðŸ‘¥', label: 'My Connections', onClick: () => setActiveTab('connections') },
-            { emoji: 'ðŸ’¬', label: 'Messages',     to: null,  soon: connections.length === 0 ? 'Connect first' : null },
-            { emoji: 'ðŸ““', label: 'My Journal',    to: null,  soon: 'Coming Soon' },
+            { emoji: '👨‍⚕️', label: 'Consult Expert', onClick: () => setActiveTab('doctors') },
+            { emoji: '👥', label: 'My Connections', onClick: () => setActiveTab('connections') },
+            { emoji: '💬', label: 'Messages',     to: null,  soon: connections.length === 0 ? 'Connect first' : null },
+            { emoji: '📓', label: 'My Journal',    to: null,  soon: 'Coming Soon' },
           ].map(({ emoji, label, to, onClick, soon, external }) => (
             external ? (
               <a key={label} href={to} target="_blank" rel="noopener noreferrer" className="glass-hover p-5 flex flex-col items-center justify-center gap-2 text-center no-underline">
