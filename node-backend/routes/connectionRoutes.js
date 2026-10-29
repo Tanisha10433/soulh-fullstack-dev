@@ -112,7 +112,12 @@ router.get('/pending', authMiddleware, async (req, res) => {
       receiver: req.user._id,
       status: 'PENDING'
     }).populate('sender');
-    res.json(requests);
+        const formatted = requests.map(r => {
+      const obj = r.toJSON ? r.toJSON() : r.toObject ? r.toObject() : r;
+      obj.id = (r._id || r.id).toString();
+      return obj;
+    });
+    res.json(formatted);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -127,7 +132,12 @@ router.get('/', authMiddleware, async (req, res) => {
         { receiver: req.user._id, status: 'ACCEPTED' }
       ]
     }).populate('sender').populate('receiver');
-    res.json(requests);
+        const formatted = requests.map(r => {
+      const obj = r.toJSON ? r.toJSON() : r.toObject ? r.toObject() : r;
+      obj.id = (r._id || r.id).toString();
+      return obj;
+    });
+    res.json(formatted);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -137,7 +147,7 @@ router.get('/', authMiddleware, async (req, res) => {
 router.patch('/:requestId', authMiddleware, async (req, res) => {
   try {
     const { action } = req.body;
-    const request = await ConnectionRequest.findById(req.params.requestId).populate('sender');
+    const request = await ConnectionRequest.findOne({ _id: req.params.requestId }).populate('sender');
     if (!request) {
       return res.status(404).json({ error: 'Request not found' });
     }

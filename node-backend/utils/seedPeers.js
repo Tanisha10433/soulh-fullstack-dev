@@ -193,6 +193,23 @@ const seedPeers = async () => {
       }
     };
 
+        // Auto-connect with any registered user or Google user (like tanisha10433@gmail.com or other users)
+    const allUsers = await User.find({ role: 'USER' });
+    for (const u of allUsers) {
+      if (userMap['priya@soulh.demo'] && u.email !== 'priya@soulh.demo') {
+        await connectUsers(u, userMap['priya@soulh.demo'], [
+          { text: 'Hey ' + (u.name ? u.name.split(' ')[0] : 'there') + '! I saw we both share similar mental health & chronic wellness journeys. Welcome to SoulH! 💙', fromTest: false, agoMinutes: 30 },
+          { text: 'Hey Priya! Thank you so much, so glad to be connected! ✨', fromTest: true, agoMinutes: 20 }
+        ]);
+      }
+      if (userMap['aarav@soulh.demo'] && u.email !== 'aarav@soulh.demo') {
+        await connectUsers(u, userMap['aarav@soulh.demo'], [
+          { text: 'Hi! I manage generalized anxiety with daily walks and mindfulness. Always here to chat if you need support! 🌿', fromTest: false, agoMinutes: 50 },
+          { text: 'Hi Aarav! Appreciate you reaching out! 🙏', fromTest: true, agoMinutes: 40 }
+        ]);
+      }
+    }
+
     if (userMap['priya@soulh.demo']) {
       await connectUsers(testUser, userMap['priya@soulh.demo'], [
         { text: 'Hey Priya! I saw your post about anxiety small wins. So inspiring!', fromTest: true, agoMinutes: 30 },

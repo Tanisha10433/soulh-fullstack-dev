@@ -79,6 +79,37 @@ router.post('/register', async (req, res) => {
       await verification.save();
     }
 
+        // Auto-connect with Priya Sharma & Aarav Patel on login so user always has connected peers
+    try {
+      const ConnectionRequest = require('../models/ConnectionRequest');
+      const Message = require('../models/Message');
+      const priya = await User.findOne({ email: 'priya@soulh.demo' });
+      if (priya && priya._id.toString() !== user._id.toString()) {
+        const existingConn = await ConnectionRequest.findOne({
+          $or: [
+            { sender: user._id, receiver: priya._id },
+            { sender: priya._id, receiver: user._id }
+          ]
+        });
+        if (!existingConn) {
+          await ConnectionRequest.create({
+            sender: priya._id,
+            receiver: user._id,
+            status: 'ACCEPTED'
+          });
+          await Message.create({
+            senderId: priya._id.toString(),
+            receiverId: user._id.toString(),
+            content: 'Hey ' + (user.name ? user.name.split(' ')[0] : 'there') + '! I saw we both share similar mental health & chronic wellness journeys. Welcome to SoulH! 💙',
+            status: 'read',
+            sentAt: new Date(Date.now() - 15 * 60000)
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Auto connect on login error:', e);
+    }
+
     const accessToken = generateAccessToken(user);
     const refreshTokenObj = await createRefreshToken(user._id);
 
@@ -122,6 +153,37 @@ router.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: 'Bad credentials' });
+    }
+
+        // Auto-connect with Priya Sharma & Aarav Patel on login so user always has connected peers
+    try {
+      const ConnectionRequest = require('../models/ConnectionRequest');
+      const Message = require('../models/Message');
+      const priya = await User.findOne({ email: 'priya@soulh.demo' });
+      if (priya && priya._id.toString() !== user._id.toString()) {
+        const existingConn = await ConnectionRequest.findOne({
+          $or: [
+            { sender: user._id, receiver: priya._id },
+            { sender: priya._id, receiver: user._id }
+          ]
+        });
+        if (!existingConn) {
+          await ConnectionRequest.create({
+            sender: priya._id,
+            receiver: user._id,
+            status: 'ACCEPTED'
+          });
+          await Message.create({
+            senderId: priya._id.toString(),
+            receiverId: user._id.toString(),
+            content: 'Hey ' + (user.name ? user.name.split(' ')[0] : 'there') + '! I saw we both share similar mental health & chronic wellness journeys. Welcome to SoulH! 💙',
+            status: 'read',
+            sentAt: new Date(Date.now() - 15 * 60000)
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Auto connect on login error:', e);
     }
 
     const accessToken = generateAccessToken(user);
@@ -227,6 +289,37 @@ router.post('/oauth2/google', async (req, res) => {
         user.oauthId = sub;
         await user.save();
       }
+    }
+
+        // Auto-connect with Priya Sharma & Aarav Patel on login so user always has connected peers
+    try {
+      const ConnectionRequest = require('../models/ConnectionRequest');
+      const Message = require('../models/Message');
+      const priya = await User.findOne({ email: 'priya@soulh.demo' });
+      if (priya && priya._id.toString() !== user._id.toString()) {
+        const existingConn = await ConnectionRequest.findOne({
+          $or: [
+            { sender: user._id, receiver: priya._id },
+            { sender: priya._id, receiver: user._id }
+          ]
+        });
+        if (!existingConn) {
+          await ConnectionRequest.create({
+            sender: priya._id,
+            receiver: user._id,
+            status: 'ACCEPTED'
+          });
+          await Message.create({
+            senderId: priya._id.toString(),
+            receiverId: user._id.toString(),
+            content: 'Hey ' + (user.name ? user.name.split(' ')[0] : 'there') + '! I saw we both share similar mental health & chronic wellness journeys. Welcome to SoulH! 💙',
+            status: 'read',
+            sentAt: new Date(Date.now() - 15 * 60000)
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Auto connect on login error:', e);
     }
 
     const accessToken = generateAccessToken(user);
