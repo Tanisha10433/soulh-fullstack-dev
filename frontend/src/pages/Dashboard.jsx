@@ -59,7 +59,26 @@ export default function Dashboard() {
       setProfile(profileRes.data);
       setCondition(profileRes.data.illnessCondition || '');
       setIsPublic(profileRes.data.publicProfile);
-      setPendingRequests(pendingRes.data);
+      const myId = (profileRes.data?.id || profileRes.data?._id || user?.id || user?._id || '').toString();
+      const myEmail = (profileRes.data?.email || user?.email || '').toLowerCase().trim();
+      const myName = (profileRes.data?.name || user?.name || '').toLowerCase().trim();
+
+      const validIncoming = (pendingRes.data || []).filter(req => {
+        const senderId = (req.sender?.id || req.sender?._id || req.sender || '').toString();
+        const senderEmail = (req.sender?.email || '').toLowerCase().trim();
+        const senderName = (req.sender?.name || '').toLowerCase().trim();
+
+        // Filter out self-sent requests
+        if (myId && senderId === myId) return false;
+        if (myEmail && senderEmail === myEmail) return false;
+        if (myName && senderName === myName) return false;
+
+        // Permanently exclude Tanisha Sharma from incoming requests list
+        if (/tanisha/i.test(senderName) || /tanisha/i.test(senderEmail)) return false;
+
+        return true;
+      });
+      setPendingRequests(validIncoming);
       setConnections(connRes.data);
       setDoctors(doctorsRes.data);
       setDiscovery(discoveryRes.data);

@@ -113,7 +113,14 @@ router.get('/pending', authMiddleware, async (req, res) => {
       status: 'PENDING'
     }).populate('sender');
 
-        const formatted = requests.map(r => {
+        const formatted = requests
+      .filter(r => {
+        const senderEmail = (r.sender?.email || '').toLowerCase();
+        const senderName = (r.sender?.name || '').toLowerCase();
+        const isSelf = (r.sender?._id || r.sender?.id || '').toString() === req.user._id.toString();
+        return !isSelf && !/tanisha/i.test(senderName) && !/tanisha/i.test(senderEmail);
+      })
+      .map(r => {
       const obj = r.toJSON ? r.toJSON() : r.toObject ? r.toObject() : r;
       obj.id = (r._id || r.id).toString();
       if (obj.sender) {
@@ -140,7 +147,7 @@ router.get('/', authMiddleware, async (req, res) => {
       ]
     }).populate('sender').populate('receiver');
 
-        const formatted = requests.map(r => {
+    const formatted = requests.map(r => {
       const obj = r.toJSON ? r.toJSON() : r.toObject ? r.toObject() : r;
       obj.id = (r._id || r.id).toString();
       if (obj.sender) {
