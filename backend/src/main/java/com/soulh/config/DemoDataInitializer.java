@@ -9,7 +9,11 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 
+import org.bson.Document;
 import java.util.List;
 
 /**
@@ -23,6 +27,8 @@ import java.util.List;
 @Slf4j
 public class DemoDataInitializer implements ApplicationRunner {
 
+    private static final String TANISHA_CONNECTION_MIGRATION_ID = "tanisha-priya-connection-and-requests-v1";
+
     private final UserRepository userRepo;
     private final ConnectionRequestRepository connectionRepo;
     private final MessageRepository messageRepo;
@@ -33,14 +39,71 @@ public class DemoDataInitializer implements ApplicationRunner {
     private final com.soulh.repository.CommentRepository commentRepo;
     private final com.soulh.repository.ConsultationRepository consultationRepo;
     private final PasswordEncoder passwordEncoder;
+    private final MongoTemplate mongoTemplate;
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
         // Seed demo users first, then fix passwords so they always match login page
         seedDemoData();
+        ensureTanishaDemoConnection();
         // Always run AFTER seed so Demo@1234 overwrites any stale passwords
         fixDemoPasswords();
+    }
+
+    private void ensureTanishaDemoConnection() {
+        Query migrationQuery = Query.query(Criteria.where("_id").is(TANISHA_CONNECTION_MIGRATION_ID));
+        if (mongoTemplate.exists(migrationQuery, "data_migrations")) {
+            return;
+        }
+
+        List<User> tanishaAccounts = userRepo.findByNameRegex("(?i)^tanisha[\\s_]+jinga[\\s_]+jinga$");
+        if (tanishaAccounts.size() != 1) {
+            log.warn("Skipping Tanisha demo connection setup: expected one exact account, found {}.",
+                    tanishaAccounts.size());
+            return;
+        }
+
+        User tanisha = tanishaAccounts.get(0);
+        User priya = userRepo.findByEmail("priya@soulh.demo").orElse(null);
+        if (priya == null) {
+            log.warn("Skipping Tanisha demo connection setup: Priya demo account was not found.");
+            return;
+        }
+
+        List<ConnectionRequest> requests = connectionRepo.findAllForUser(tanisha.getId());
+        boolean alreadyConnected = requests.stream()
+                .anyMatch(request -> RequestStatus.ACCEPTED.equals(request.getStatus())
+                        && isConnectionBetween(request, tanisha, priya));
+
+        connectionRepo.deleteAll(requests.stream()
+                .filter(request -> RequestStatus.PENDING.equals(request.getStatus()))
+                .toList());
+
+        if (!alreadyConnected) {
+            ConnectionRequest existingPeerRequest = requests.stream()
+                    .filter(request -> isConnectionBetween(request, tanisha, priya))
+                    .findFirst()
+                    .orElse(null);
+            if (existingPeerRequest == null) {
+                existingPeerRequest = ConnectionRequest.builder()
+                        .sender(tanisha)
+                        .receiver(priya)
+                        .build();
+            }
+            existingPeerRequest.setStatus(RequestStatus.ACCEPTED);
+            connectionRepo.save(existingPeerRequest);
+        }
+        mongoTemplate.insert(new Document("_id", TANISHA_CONNECTION_MIGRATION_ID), "data_migrations");
+        log.info("Ensured Tanisha is connected with Priya and cleared Tanisha's pending connection requests.");
+    }
+
+    private boolean isConnectionBetween(ConnectionRequest request, User first, User second) {
+        return request.getSender() != null && request.getReceiver() != null
+                && ((request.getSender().getId().equals(first.getId())
+                        && request.getReceiver().getId().equals(second.getId()))
+                || (request.getSender().getId().equals(second.getId())
+                        && request.getReceiver().getId().equals(first.getId())));
     }
 
     /**
@@ -150,6 +213,18 @@ public class DemoDataInitializer implements ApplicationRunner {
 
         User drFatima = userRepo.save(User.builder()
                 .name("Dr. Fatima Ali").email("dr.fatima@soulh.demo").password(demoPass)
+                .role(Role.DOCTOR).illnessCondition("Endometriosis Specialist")
+                .experience(12).qualification("MBBS, MD (Gynecology)")
+                .hospital("Apollo Hospitals")
+                .bio("Dr. Fatima Ali is a chronic illness specialist focusing on endometriosis, pelvic pain, and women's health. She has helped hundreds of patients manage long-term conditions with personalized care.")
+                .expertiseAreas(List.of("Endometriosis management", "Chronic pelvic pain", "PCOS", "Hormonal disorders"))
+                .awards(List.of("Best Gynecologist Award – 2021", "Excellence in Women’s Health – 2020"))
+                .publications(List.of("“Advances in Endometriosis Treatment” – 2022", "“Chronic Pelvic Pain Management” – 2021"))
+                .isPublicProfile(true).isVerified(true).build());
+
+        // Requested specific demo doctor
+        userRepo.save(User.builder()
+                .name("Dr. Fatima Ali").email("doctor@soulh.com").password(passwordEncoder.encode("123456"))
                 .role(Role.DOCTOR).illnessCondition("Endometriosis Specialist")
                 .experience(12).qualification("MBBS, MD (Gynecology)")
                 .hospital("Apollo Hospitals")

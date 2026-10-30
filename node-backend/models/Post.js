@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const PostSchema = new mongoose.Schema({
   communityId: {
     type: String,
-    required: true
+    required: true,
+    index: true
   },
   authorId: {
     type: String,
@@ -36,8 +37,6 @@ const PostSchema = new mongoose.Schema({
     default: []
   }
 });
-
-PostSchema.index({ communityId: 1, createdAt: -1 });
 
 // toJSON transform helper
 PostSchema.set('toJSON', {

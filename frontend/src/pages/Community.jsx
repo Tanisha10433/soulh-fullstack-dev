@@ -169,14 +169,16 @@ export default function Community() {
       const currentPage = isInitial ? 0 : page;
       const res = await api.get(`/api/posts?page=${currentPage}&size=10`);
       const newPosts = res.data;
+      const visiblePosts = (newPosts || []).filter(post =>
+        !/jinga/i.test(post.author?.name || '') && !/ky haal hai/i.test(post.content || '')
+      );
       
       if (isInitial) {
-        setPosts((newPosts || []).filter(p => !/jinga/i.test(p.author?.name || '') && !/ky haal hai/i.test(p.content || '')));
+        setPosts(visiblePosts);
         setPage(1);
         setHasMore(newPosts.length === 10);
       } else {
-        const clean = (newPosts || []).filter(p => !/jinga/i.test(p.author?.name || '') && !/ky haal hai/i.test(p.content || ''));
-        setPosts(prev => [...prev, ...clean]);
+        setPosts(prev => [...prev, ...visiblePosts]);
         setPage(prev => prev + 1);
         setHasMore(newPosts.length === 10);
       }

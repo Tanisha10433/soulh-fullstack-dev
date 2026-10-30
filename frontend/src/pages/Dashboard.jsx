@@ -32,9 +32,6 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('feed');
   const [respondingReq, setRespondingReq] = useState({});
   const [posts, setPosts] = useState([]);
-  const [postPage, setPostPage] = useState(0);
-  const [hasMorePosts, setHasMorePosts] = useState(false);
-  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
   const [isAnonymousPost, setIsAnonymousPost] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -51,45 +48,29 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const postsPromise = api.get('/api/communities/1/posts?page=0&size=10')
-        .then(({ data }) => {
-          setPosts((data || []).filter(p => !/jinga/i.test(p.author?.name || '') && !/ky haal hai/i.test(p.content || '')));
-          setPostPage(0);
-          setHasMorePosts(data.length === 10);
-        })
-        .catch(() => {
-          console.log("No community found or posts yet.");
-        });
-
-      const [pendingRes, connRes, doctorsRes, discoveryRes, consultationsRes] = await Promise.all([
+      const [profileRes, pendingRes, connRes, doctorsRes, discoveryRes, consultationsRes] = await Promise.all([
+        api.get('/api/users/me'),
         api.get('/api/connections/pending'),
         api.get('/api/connections'),
         api.get('/api/users/doctors'),
         api.get('/api/users/discover'),
         api.get('/api/consultations/my')
       ]);
-      setProfile(user);
-      setCondition(user.illnessCondition || '');
-      setIsPublic(user.publicProfile);
-            const myId = (user?.id || user?._id || '').toString();
-      const myEmail = (user?.email || '').toLowerCase().trim();
-      const incomingOnly = (pendingRes.data || []).filter(r => {
-        const senderId = (r.sender?.id || r.sender?._id || r.sender || '').toString();
-        const senderEmail = (r.sender?.email || '').toLowerCase().trim();
-        // Ignore self-requests
-        if (myId && senderId === myId) return false;
-        if (myEmail && senderEmail === myEmail) return false;
-        return true;
-      });
-      setPendingRequests(incomingOnly);
+      setProfile(profileRes.data);
+      setCondition(profileRes.data.illnessCondition || '');
+      setIsPublic(profileRes.data.publicProfile);
+      setPendingRequests(pendingRes.data);
       setConnections(connRes.data);
-      const uniqueDocs = (doctorsRes.data || []).filter((doc, idx, arr) => idx === arr.findIndex(d => d.name?.trim().toLowerCase() === doc.name?.trim().toLowerCase()));
-      setDoctors(uniqueDocs);
-      const cleanDiscovery = (discoveryRes.data || []).filter(u => !/jinga/i.test(u.name || '') && !/jinga/i.test(u.email || ''));
-      setDiscovery(cleanDiscovery);
+      setDoctors(doctorsRes.data);
+      setDiscovery(discoveryRes.data);
       setConsultations(consultationsRes.data || []);
 
-      await postsPromise;
+      try {
+        const postsRes = await api.get('/api/communities/1/posts');
+        setPosts(postsRes.data);
+      } catch (e) {
+        console.log("No community found or posts yet.");
+      }
     } catch (err) {
       console.error("Dashboard loadData error:", err);
       if (err.response?.status === 401) {
@@ -122,7 +103,6 @@ export default function Dashboard() {
       setLoadingMorePosts(false);
     }
   };
-
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
@@ -139,7 +119,7 @@ export default function Dashboard() {
       sessionStorage.setItem(`peer_${peerId}`, JSON.stringify(peer));
       addToast(`Connection request sent to ${peer.name}!`, 'success');
     } catch (err) {
-      addToast(err.response?.data?.error || err.response?.data?.message || 'Could not send request.', 'error');
+      addToast(err.response?.data?.message || 'Could not send request.', 'error');
     } finally {
       setSendingReq(p => ({ ...p, [peerId]: false }));
     }
@@ -153,7 +133,7 @@ export default function Dashboard() {
       await loadData();
       if (action === 'ACCEPT') {
         setActiveTab('connections');
-        addToast('Connection accepted! Priya is now connected 🎉', 'success');
+        addToast('Connection accepted! 🎉', 'success');
       } else {
         addToast('Request rejected.', 'info');
       }
@@ -607,17 +587,6 @@ export default function Dashboard() {
                     );
                   })}
                 </div>
-                {hasMorePosts && (
-                  <button
-                    type="button"
-                    onClick={loadMorePosts}
-                    disabled={loadingMorePosts}
-                    className="w-full mt-3 py-2 text-sm font-semibold rounded-xl"
-                    style={{ color: '#0d6b5e', background: 'rgba(13,107,94,0.07)' }}
-                  >
-                    {loadingMorePosts ? 'Loading...' : 'Load more posts'}
-                  </button>
-                )}
               </div>
             )}
 
@@ -647,16 +616,16 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <button
-                        disabled={sendingReq[u.id || u._id] || sentReqs[u.id || u._id]}
-                        onClick={() => sendRequest(u.id || u._id, u)}
+                        disabled={sendingReq[u.id] || sentReqs[u.id]}
+                        onClick={() => sendRequest(u.id, u)}
                         className="text-xs font-bold px-3 py-1.5 rounded-xl transition"
                         style={{
-                          background: sentReqs[u.id || u._id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
-                          color: sentReqs[u.id || u._id] ? '#047857' : 'white',
-                          border: sentReqs[u.id || u._id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
+                          background: sentReqs[u.id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
+                          color: sentReqs[u.id] ? '#047857' : 'white',
+                          border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
                         }}
                       >
-                        {sendingReq[u.id || u._id] ? '...' : sentReqs[u.id || u._id] ? '✓ Sent' : '+ Connect'}
+                        {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
                       </button>
                     </div>
                   ))}
@@ -737,16 +706,16 @@ export default function Dashboard() {
                               </div>
                             </div>
                             <button
-                              disabled={sendingReq[u.id || u._id] || sentReqs[u.id || u._id]}
-                              onClick={() => sendRequest(u.id || u._id, u)}
+                              disabled={sendingReq[u.id] || sentReqs[u.id]}
+                              onClick={() => sendRequest(u.id, u)}
                               className="text-xs font-bold px-3 py-1.5 rounded-xl transition"
                               style={{
-                                background: sentReqs[u.id || u._id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
-                                color: sentReqs[u.id || u._id] ? '#047857' : 'white',
-                                border: sentReqs[u.id || u._id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
+                                background: sentReqs[u.id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
+                                color: sentReqs[u.id] ? '#047857' : 'white',
+                                border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
                               }}
                             >
-                              {sendingReq[u.id || u._id] ? '...' : sentReqs[u.id || u._id] ? '✓ Sent' : '+ Connect'}
+                              {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
                             </button>
                           </div>
                         ))
@@ -776,16 +745,16 @@ export default function Dashboard() {
                                 </div>
                               </div>
                               <button
-                                disabled={sendingReq[u.id || u._id] || sentReqs[u.id || u._id]}
-                                onClick={() => sendRequest(u.id || u._id, u)}
+                                disabled={sendingReq[u.id] || sentReqs[u.id]}
+                                onClick={() => sendRequest(u.id, u)}
                                 className="text-xs font-bold px-3 py-1.5 rounded-xl transition"
                                 style={{
-                                  background: sentReqs[u.id || u._id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
-                                  color: sentReqs[u.id || u._id] ? '#047857' : 'white',
-                                  border: sentReqs[u.id || u._id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
+                                  background: sentReqs[u.id] ? 'rgba(5,150,105,0.1)' : '#0d6b5e',
+                                  color: sentReqs[u.id] ? '#047857' : 'white',
+                                  border: sentReqs[u.id] ? '1px solid rgba(5,150,105,0.25)' : 'none',
                                 }}
                               >
-                                {sendingReq[u.id || u._id] ? '...' : sentReqs[u.id || u._id] ? '✓ Sent' : '+ Connect'}
+                                {sendingReq[u.id] ? '...' : sentReqs[u.id] ? '✓ Sent' : '+ Connect'}
                               </button>
                             </div>
                           ))
@@ -799,24 +768,10 @@ export default function Dashboard() {
             {/* PENDING TAB */}
             {activeTab === 'pending' && (
               <div className="space-y-2 max-h-60 overflow-y-auto">
-                                <div className="flex justify-between items-center px-1 mb-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Incoming Requests</span>
-                  {pendingRequests.length > 0 && (
-                    <button
-                      onClick={() => {
-                        setPendingRequests([]);
-                        addToast('Requests list cleared.', 'info');
-                      }}
-                      className="text-[10px] font-semibold text-rose-500 hover:text-rose-700 underline"
-                    >
-                      Clear all
-                    </button>
-                  )}
-                </div>
                 {pendingRequests.length === 0 ? (
                   <div className="text-center py-8"><p className="text-4xl mb-2">🎉</p><p className="text-sm" style={{ color: '#8aada5' }}>No pending requests.</p></div>
                 ) : pendingRequests.map(req => (
-                  <div key={req.id || req._id} className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'rgba(232,119,106,0.05)', border: '1px solid rgba(232,119,106,0.15)' }}>
+                  <div key={req.id} className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'rgba(232,119,106,0.05)', border: '1px solid rgba(232,119,106,0.15)' }}>
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: 'linear-gradient(135deg, #e8776a, #d45f52)' }}>
                         {req.sender?.name?.[0]?.toUpperCase() || '?'}

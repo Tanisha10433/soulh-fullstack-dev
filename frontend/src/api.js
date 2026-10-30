@@ -3,7 +3,7 @@ import axios from 'axios';
 const baseURL = import.meta.env.VITE_API_URL ?? 'https://soulh-backend.onrender.com';
 const api = axios.create({
   baseURL,
-  timeout: 45000, // 15s timeout — avoids hanging requests on cold start
+  timeout: 45000,
 });
 
 // Keep Render free tier warm — ping every 14 minutes
@@ -19,30 +19,5 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
-
-// Handle Token Refresh on 401
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      const refreshToken = localStorage.getItem('soulh_refresh_token');
-      if (refreshToken) {
-        try {
-          const { data } = await axios.post(`${baseURL}/api/auth/refresh`, { refreshToken });
-          localStorage.setItem('soulh_token', data.token);
-          api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-          return api(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed - logout
-          localStorage.clear();
-          window.location.href = '/login';
-        }
-      }
-    }
-    return Promise.reject(error);
-  }
-);
 
 export default api;
